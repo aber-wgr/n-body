@@ -18,7 +18,7 @@
 
 int BodyManager::AddBody(double pos[3], double vel[3], double m, double w)
 {
-    int n = nextIndex++;
+    int n = localBodies.nextIndex++;
 	
     for(int i=0;i<3;i++)
     {
@@ -130,7 +130,7 @@ void BodyManager::GenerateBodies(int n, std::array<double, 3> min, std::array<do
         }
         localBodies.mass.push_back(f_rand(0.5, 1));
         localBodies.work.push_back(1);
-        nextIndex++;
+        localBodies.nextIndex++;
     }
 }
 
@@ -180,13 +180,15 @@ double BodyManager::WeightFrac(double split, int coord, const MPI_Comm& comm) {
 
 	
     work_above = work_below = 0;
-    
-    for (i = 0; i < position.size(); i++) {
-        if (localBodies.position.at(i)[coord] > split) {
-            work_above += work[i];
+	
+    for (i = 0; i < localBodies.work.size(); i++) 
+    {
+        if (localBodies.position.at((i*4)+coord) > split) 
+        {
+            work_above += localBodies.work[i];
         }
         else {
-            work_below += work[i];
+            work_below += localBodies.work[i];
         }
     }
     
@@ -196,7 +198,6 @@ double BodyManager::WeightFrac(double split, int coord, const MPI_Comm& comm) {
 
     // Return fraction of work below
     return tot_work_below / (tot_work_above + tot_work_below);
-
 }
 
 bool BodyManager::IsAboveSplit(int rank, int n_processes)
@@ -308,17 +309,16 @@ void BodyManager::Orb(std::vector<Bounds>& bounds, std::vector<Bounds>& other_bo
 
         for (int i = 0; i < localBodies.position.size(); i++)
         {
-            auto pos = localBodies.position.at(i);
-            if ((pos[coord] - split > 0) == above)
+            if ((localBodies.position[i*4+coord] - split > 0) == above)
             {
-                this_side.position.push_back(pos);
+                this_side.position.push_back(localBodies.position[i * 4]);
                 this_side.velocity.push_back(localBodies.velocity.at(i));
                 this_side.mass.push_back(localBodies.mass.at(i));
                 this_side.work.push_back(localBodies.work.at(i));
             }
             else
             {
-                other_side.position.push_back(pos);
+                other_side.position.push_back(localBodies.position[i * 4]);
                 other_side.velocity.push_back(localBodies.velocity.at(i));
                 other_side.mass.push_back(localBodies.mass.at(i));
                 other_side.work.push_back(localBodies.work.at(i));
@@ -336,42 +336,42 @@ void BodyManager::Orb(std::vector<Bounds>& bounds, std::vector<Bounds>& other_bo
         if (above) {
             // probe recv size and resize vector
             MPI_Probe(partner, 0, MPI_COMM_WORLD, &status);
-            MPI_Get_count(&status, mpi_body_vec4_type, &n_recv_bodies);
-            this_side.position.resize(this_side.position.size() + n_recv_bodies);
-            this_side.velocity.resize(this_side.velocity.size() + n_recv_bodies);
+            MPI_Get_count(&status, MPI_DOUBLE, &n_recv_bodies);
+            this_side.position.resize(this_side.position.size() + n_recv_bodies * 4);
+            this_side.velocity.resize(this_side.velocity.size() + n_recv_bodies * 4);
             this_side.mass.resize(this_side.mass.size() + n_recv_bodies);
             this_side.work.resize(this_side.work.size() + n_recv_bodies);
-            MPI_Recv(&this_side.position[this_side_size], n_recv_bodies, mpi_body_vec4_type,
+            MPI_Recv(&this_side.position[this_side_size * 4], n_recv_bodies * 4, MPI_DOUBLE,
                 partner, 0, MPI_COMM_WORLD, &status);
-            MPI_Recv(&this_side.velocity[this_side_size], n_recv_bodies, mpi_body_vec4_type,
+            MPI_Recv(&this_side.velocity[this_side_size * 4], n_recv_bodies * 4, MPI_DOUBLE,
                 partner, 0, MPI_COMM_WORLD, &status);
             MPI_Recv(&this_side.mass[this_side_size], n_recv_bodies, MPI_DOUBLE,
                 partner, 0, MPI_COMM_WORLD, &status);
             MPI_Recv(&this_side.work[this_side_size], n_recv_bodies, MPI_DOUBLE,
                 partner, 0, MPI_COMM_WORLD, &status);
 
-            MPI_Send(&other_side.position[0], other_side.position.size(), mpi_body_vec4_type, partner, 0, MPI_COMM_WORLD);
-            MPI_Send(&other_side.velocity[0], other_side.velocity.size(), mpi_body_vec4_type, partner, 0, MPI_COMM_WORLD);
+            MPI_Send(&other_side.position[0], other_side.position.size() * 4, MPI_DOUBLE, partner, 0, MPI_COMM_WORLD);
+            MPI_Send(&other_side.velocity[0], other_side.velocity.size() * 4, MPI_DOUBLE, partner, 0, MPI_COMM_WORLD);
             MPI_Send(&other_side.mass[0], other_side.mass.size(), MPI_DOUBLE, partner, 0, MPI_COMM_WORLD);
             MPI_Send(&other_side.work[0], other_side.work.size(), MPI_DOUBLE, partner, 0, MPI_COMM_WORLD);
         }
         else {
             // send bodies
-            MPI_Send(&other_side.position[0], other_side.position.size(), mpi_body_vec4_type, partner, 0, MPI_COMM_WORLD);
-            MPI_Send(&other_side.velocity[0], other_side.velocity.size(), mpi_body_vec4_type, partner, 0, MPI_COMM_WORLD);
+            MPI_Send(&other_side.position[0], other_side.position.size() * 4, MPI_DOUBLE, partner, 0, MPI_COMM_WORLD);
+            MPI_Send(&other_side.velocity[0], other_side.velocity.size() * 4, MPI_DOUBLE, partner, 0, MPI_COMM_WORLD);
             MPI_Send(&other_side.mass[0], other_side.mass.size(), MPI_DOUBLE, partner, 0, MPI_COMM_WORLD);
             MPI_Send(&other_side.work[0], other_side.work.size(), MPI_DOUBLE, partner, 0, MPI_COMM_WORLD);
 
             // probe recv size and resize vector
             MPI_Probe(partner, 0, MPI_COMM_WORLD, &status);
-            MPI_Get_count(&status, mpi_body_vec4_type, &n_recv_bodies);
-            this_side.position.resize(this_side.position.size() + n_recv_bodies);
-            this_side.velocity.resize(this_side.velocity.size() + n_recv_bodies);
+            MPI_Get_count(&status, MPI_DOUBLE, &n_recv_bodies);
+            this_side.position.resize(this_side.position.size() + n_recv_bodies * 4);
+            this_side.velocity.resize(this_side.velocity.size() + n_recv_bodies * 4);
             this_side.mass.resize(this_side.mass.size() + n_recv_bodies);
             this_side.work.resize(this_side.work.size() + n_recv_bodies);
-            MPI_Recv(&this_side.position[this_side_size], n_recv_bodies, mpi_body_vec4_type,
+            MPI_Recv(&this_side.position[this_side_size * 4], n_recv_bodies * 4, MPI_DOUBLE,
                 partner, 0, MPI_COMM_WORLD, &status);
-            MPI_Recv(&this_side.velocity[this_side_size], n_recv_bodies, mpi_body_vec4_type,
+            MPI_Recv(&this_side.velocity[this_side_size * 4], n_recv_bodies * 4, MPI_DOUBLE,
                 partner, 0, MPI_COMM_WORLD, &status);
             MPI_Recv(&this_side.mass[this_side_size], n_recv_bodies, MPI_DOUBLE,
                 partner, 0, MPI_COMM_WORLD, &status);

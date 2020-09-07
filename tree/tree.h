@@ -16,7 +16,7 @@ struct Cell {
     double rm[3]; // center of mass
     Cell * subcells[8]; // eight subcells maximum
     bool inserted = false;
-    const Body * b = nullptr;
+    int body;
     bool send_as_leaf = false;
     int list_idx = -1; 
     int parent_idx = -1;
@@ -30,7 +30,7 @@ public:
     @param min_bounds : minimum bounds of root cell
     @param max_bounds : maximum bounds of root cell
     */
-    Tree(const double * min_bounds, const double * max_bounds, double theta);
+    Tree(BodyManager* bm, const double * min_bounds, const double * max_bounds, double theta);
 
     /*
     deletes the tree
@@ -48,7 +48,8 @@ public:
     /*
     inserts a body into the tree (expands it)
     */
-    void insert_body(const Body * b);
+    //void insert_body(const Body * b);
+    void insert_body(int bodyIndex);
 
     /*
     inserts an empty cell into the tree
@@ -96,7 +97,8 @@ public:
     @param pos : position of body
     @param m : mass of body
     */
-    array<double, 3> compute_force(const Body * b);
+    //array<double, 3> compute_force(const Body * b);
+    array<double, 3> compute_force(int bodyIndex);
 
     /*
     constructs string representation of tree
@@ -136,7 +138,8 @@ private:
     /*
     inserts a body into the tree (expands it)
     */
-    void insert_body(Cell * c, const Body * b);
+    //void insert_body(Cell * c, const Body * b);
+    void insert_body(Cell* c, int bodyIndex);
     
     /*
     inserts an empty cell into the tree
@@ -212,7 +215,8 @@ private:
     @param pos : position of body
     @param m : mass of body
     */
-    array<double, 3> compute_force(const Cell * cell, const Body * b);
+    //array<double, 3> compute_force(const Cell * cell, const Body * b);
+    array<double, 3> compute_force(const Cell* cell, int bodyIndex);
 
     /*
     Constructs string representation of subtree
@@ -232,6 +236,8 @@ private:
     parameter for opening criterion
     */
     double m_theta;
+
+    BodyManager* bodyManager;
 
 };
 

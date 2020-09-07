@@ -59,10 +59,6 @@ public:
 	int GetPartner(int rank, int n_processes);
     double WeightFrac(double split, int coord, const MPI_Comm& comm);
 	void Orb(std::vector<Bounds>& bounds, std::vector<Bounds>& other_bounds, std::vector<std::pair<int, bool> > & partners, const double * global_min, const double * global_max, int rank, int n_processors);
-	
-	void BuildTree(std::vector<Bounds>& bounds, std::vector<Bounds>& other_bounds, const std::vector<std::pair<int, bool> > & partners, Tree & tree, int rank);
-
-    std::vector<Cell *> construct_received_trees(const std::vector<MPICell> & recv_cells);
 
     void WriteBodies(const char* filename, MPI_Comm comm, bool overwrite);
     void ReadBodies(const char* filename, MPI_Comm comm);
