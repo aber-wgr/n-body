@@ -4,9 +4,10 @@
 
 #include <stddef.h>
 
-MPI_Datatype mpi_body_type;
+//MPI_Datatype mpi_body_type;
 MPI_Datatype mpi_cell_type;
 
+/**
 void create_mpi_body(){
     int blocklengths[4] = {3, 3, 1, 1};
     MPI_Datatype types[4] = {MPI_DOUBLE, MPI_DOUBLE, MPI_DOUBLE,  MPI_DOUBLE};
@@ -20,6 +21,7 @@ void create_mpi_body(){
     MPI_Type_create_struct(4, blocklengths, offsets, types, &mpi_body_type);
     MPI_Type_commit(&mpi_body_type);
 }
+*/
 
 void create_mpi_cell(){
     int blocklengths[5] = {3, 3, 1, 3, 1};
@@ -38,11 +40,11 @@ void create_mpi_cell(){
 
 
 void init_mpi_types(){
-    create_mpi_body();
+    //create_mpi_body();
     create_mpi_cell();
 }
 
 void free_mpi_types(){
-    MPI_Type_free(&mpi_body_type);
+    //MPI_Type_free(&mpi_body_type);
     MPI_Type_free(&mpi_cell_type);
 }

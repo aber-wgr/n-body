@@ -11,8 +11,6 @@ set(CMAKE_CXX_COMPILER mpicxx)
 set(SOURCE_FILES
         misc/body.cpp
         misc/body.h
-        misc/gen_bodies.cpp
-        misc/gen_bodies.h
         misc/inputparser.cpp
         misc/inputparser.h
         misc/model.cpp
@@ -25,8 +23,6 @@ set(SOURCE_FILES
         misc/utils.h
         tree/build_tree.cpp
         tree/build_tree.h
-        tree/orb.cpp
-        tree/orb.h
         tree/tree.cpp
         tree/tree.h
         main.cpp)

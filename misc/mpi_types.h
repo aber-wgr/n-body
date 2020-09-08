@@ -4,7 +4,7 @@
 
 #include <mpi.h>
 
-extern MPI_Datatype mpi_body_type;
+//extern MPI_Datatype mpi_body_type;
 extern MPI_Datatype mpi_cell_type;
 
 struct MPICell{
@@ -16,7 +16,7 @@ struct MPICell{
 };
 
 
-void create_mpi_body();
+//void create_mpi_body();
 
 void create_mpi_cell();
 

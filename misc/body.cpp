@@ -7,7 +7,6 @@
 
 #include "../misc/mpi_types.h"
 #include "../misc/utils.h"
-#include "../tree/orb.h"
 
 #include <string>
 #include <fstream>
@@ -216,6 +215,21 @@ int BodyManager::GetPartner(int rank, int n_processes)
     return partner; 
 }
 
+
+int BodyManager::SplitCoord(double* min, double* max)
+{
+    double max_diff = -1;
+    int coord;
+    for (int c = 0; c < 3; c++) {
+        // split along maximum dimension
+        if (max[c] - min[c] > max_diff) {
+            coord = c;
+            max_diff = max[c] - min[c];
+        }
+    }
+    return coord;
+}
+
 void BodyManager::Orb(std::vector<Bounds>& bounds, std::vector<Bounds>& other_bounds, std::vector<std::pair<int, bool> >& partners, const double* global_min, const double* global_max, int rank, int n_processors)
 {
     // Declare variables
@@ -255,7 +269,7 @@ void BodyManager::Orb(std::vector<Bounds>& bounds, std::vector<Bounds>& other_bo
         MPI_Comm_split(MPI_COMM_WORLD, color, rank, &subset_comm);
 
         // choose cartesian coordinate to split
-        coord = split_coord(min, max);
+        coord = SplitCoord(min.data(), max.data());
 
         // find split through the bisection method
         // which divides workload equally
@@ -266,7 +280,7 @@ void BodyManager::Orb(std::vector<Bounds>& bounds, std::vector<Bounds>& other_bo
         MPI_Comm_free(&subset_comm);
 
         // Decide if process is above or below split
-        above = is_above_split(rank, n_proc_left);
+        above = IsAboveSplit(rank, n_proc_left);
 
 
         // Save bounds
@@ -329,7 +343,7 @@ void BodyManager::Orb(std::vector<Bounds>& bounds, std::vector<Bounds>& other_bo
 
         // Exchange bodies with other side
         // get communication partner
-        partner = get_partner(rank, n_proc_left);
+        partner = GetPartner(rank, n_proc_left);
         partners.push_back(std::make_pair(partner, above));
 
         // must separate send and recieve in order to read incoming size
@@ -435,6 +449,17 @@ void BodyManager::ReadBodies(const char* filename, MPI_Comm comm)
     }
 }
 
+#include <sys/stat.h>
+
+bool file_exists(const std::string& filename)
+{
+    struct stat buf;
+    if (stat(filename.c_str(), &buf) != -1)
+    {
+        return true;
+    }
+    return false;
+}
 
 void BodyManager::WriteBodies(const char* filename, MPI_Comm comm, bool overwrite)
 {
@@ -451,7 +476,7 @@ void BodyManager::WriteBodies(const char* filename, MPI_Comm comm, bool overwrit
         myfile.open(filename, std::ios::app);
     }
     else {
-        if (!std::errc::file_exists(filename) or overwrite) {
+        if (!file_exists(filename) or overwrite) {
             myfile.open(filename);
         }
         else {

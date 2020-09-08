@@ -9,6 +9,8 @@
 
 using std::vector; using std::array;
 
+class BodyManager;
+
 struct Cell {
     double min_bounds[3];
     double max_bounds[3];
