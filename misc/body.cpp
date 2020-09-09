@@ -187,7 +187,8 @@ double BodyManager::WeightFrac(double split, int coord, const MPI_Comm& comm) {
         {
             work_above += localBodies.work[i];
         }
-        else {
+        else 
+        {
             work_below += localBodies.work[i];
         }
     }
@@ -230,38 +231,6 @@ int BodyManager::SplitCoord(double* min, double* max)
     }
     return coord;
 }
-
-/**
-double BodyManager::Bisection(double a, double b, double tol, int max_iter)
-{
-
-    double c, fa, fb, fc;
-    int n_iter;
-	
-    fa = f(a);
-    fb = f(b);
-
-    n_iter = 0;
-    while (fabs(b - a) > tol && fa != fb && n_iter < max_iter) {
-        c = (a + b) / 2;
-        fc = f(c);
-
-
-        if (fc == 0) {
-            return c;
-        }
-        else if (fa * fc > 0) {
-            a = c;
-        }
-        else {
-            b = c;
-        }
-        n_iter++;
-    }
-
-    return (a + b) / 2;
-}
-*/
 
 void BodyManager::Orb(std::vector<Bounds>& bounds, std::vector<Bounds>& other_bounds, std::vector<std::pair<int, bool> >& partners, const double* global_min, const double* global_max, int rank, int n_processors)
 {
@@ -358,15 +327,21 @@ void BodyManager::Orb(std::vector<Bounds>& bounds, std::vector<Bounds>& other_bo
         {
             if ((localBodies.position[i*4+coord] - split > 0) == above)
             {
-                this_side.position.push_back(localBodies.position[i * 4]);
-                this_side.velocity.push_back(localBodies.velocity[i * 4]);
+                for (int j = 0; j < 4; j++)
+                {
+                    this_side.position.push_back(localBodies.position[i * 4 + j]);
+                    this_side.velocity.push_back(localBodies.velocity[i * 4 + j]);
+                }
                 this_side.mass.push_back(localBodies.mass.at(i));
                 this_side.work.push_back(localBodies.work.at(i));
             }
             else
             {
-                other_side.position.push_back(localBodies.position[i * 4]);
-                other_side.velocity.push_back(localBodies.velocity[i * 4]);
+                for (int j = 0; j < 4; j++)
+                {
+                    other_side.position.push_back(localBodies.position[i * 4 + j]);
+                    other_side.velocity.push_back(localBodies.velocity[i * 4 + j]);
+                }
                 other_side.mass.push_back(localBodies.mass.at(i));
                 other_side.work.push_back(localBodies.work.at(i));
             }
@@ -394,8 +369,8 @@ void BodyManager::Orb(std::vector<Bounds>& bounds, std::vector<Bounds>& other_bo
             int n_actual_bodies = n_recv_bodies / 10; //actual body count
 
             std::vector<double> recv(n_recv_bodies);
-            MPI_Recv(&recv[0], n_recv_bodies, MPI_DOUBLE, partner, 0, MPI_COMM_WORLD, &status);
-            MPI_Send(&send[0], send.size(), MPI_DOUBLE, partner, 0, MPI_COMM_WORLD);
+            MPI_Recv(recv.data(), n_recv_bodies, MPI_DOUBLE, partner, 0, MPI_COMM_WORLD, &status);
+            MPI_Send(send.data(), send.size(), MPI_DOUBLE, partner, 0, MPI_COMM_WORLD);
 
             auto posEnd = recv.begin() + n_actual_bodies * 4;
             auto velEnd = recv.begin() + n_actual_bodies * 8;
@@ -408,14 +383,14 @@ void BodyManager::Orb(std::vector<Bounds>& bounds, std::vector<Bounds>& other_bo
         }
         else {
             // send then receive
-            MPI_Send(&send[0], send.size(), MPI_DOUBLE, partner, 0, MPI_COMM_WORLD);
+            MPI_Send(send.data(), send.size(), MPI_DOUBLE, partner, 0, MPI_COMM_WORLD);
 
             // probe recv size and resize vector (same caveat as above)
             MPI_Probe(partner, 0, MPI_COMM_WORLD, &status);
             MPI_Get_count(&status, MPI_DOUBLE, &n_recv_bodies);
             int n_actual_bodies = n_recv_bodies / 10;
             std::vector<double> recv(n_recv_bodies);
-            MPI_Recv(&recv[0], n_recv_bodies, MPI_DOUBLE, partner, 0, MPI_COMM_WORLD, &status);
+            MPI_Recv(recv.data(), n_recv_bodies, MPI_DOUBLE, partner, 0, MPI_COMM_WORLD, &status);
 
             auto posEnd = recv.begin() + n_actual_bodies * 4;
             auto velEnd = recv.begin() + n_actual_bodies * 8;
