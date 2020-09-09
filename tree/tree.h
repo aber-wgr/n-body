@@ -18,7 +18,7 @@ struct Cell {
     double rm[3]; // center of mass
     Cell * subcells[8]; // eight subcells maximum
     bool inserted = false;
-    int body;
+    int body = -1;
     bool send_as_leaf = false;
     int list_idx = -1; 
     int parent_idx = -1;

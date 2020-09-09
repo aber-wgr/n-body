@@ -56,7 +56,7 @@ void Tree::insert_body(Cell* cell, int bodyIndex)
     {
         cell->m = bodies.mass[bodyIndex];
     	
-        copy(bodies.position.begin() + bodyIndex * 4, bodies.position.begin() + bodyIndex * 4 + 2, cell->rm);
+        copy(bodies.position.begin() + bodyIndex * 4, bodies.position.begin() + bodyIndex * 4 + 3, cell->rm);
         cell->body = bodyIndex;
     }
     else 
@@ -93,7 +93,7 @@ void Tree::insert_body(Cell* cell, int bodyIndex)
         /* insert new body into subcell */
         for (int i = 0; i < 8; i++) 
         {
-            if (cell->subcells[i] != nullptr and coord_in_cell(cell->subcells[i], bodies.position.data() + bodyIndex * 4 * sizeof(double))) 
+            if (cell->subcells[i] != nullptr and coord_in_cell(cell->subcells[i], bodies.position.data() + bodyIndex * 4)) 
             {
                 insert_body(cell->subcells[i], bodyIndex);
                 break;
@@ -353,7 +353,7 @@ array<double, 3> Tree::compute_force(const Cell* cell, int bodyIndex) {
 
     /* if cell is non empty and we dont want to open it or it is leaf cell */
     auto bodies = bodyManager->localBodies;
-    auto pos = bodies.position.data() + bodyIndex * 4 * sizeof(double);
+    auto pos = bodies.position.data() + bodyIndex * 4;
     if (cell->m != 0 and (!opening_criterion(cell, pos, pos) or cell->subcells[0] == nullptr)) {
         if (cell->body != bodyIndex) {
             /* evaluate force */
