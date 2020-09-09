@@ -18,15 +18,27 @@ bool file_exists(const std::string& filename)
 }
 
 
+void write_to_file(const char* filename, double x, bool overwrite) {
+    std::ofstream myfile;
+    if (!file_exists(filename) or overwrite) {
+        myfile.open(filename);
+    }
+    else {
+        myfile.open(filename, std::ios::app);
+    }
+    myfile << x << std::endl;
+    myfile.close();
+}
 
-void write_to_file(const char * filename, const double x, bool overwrite){
+void write_vector(const char * filename, std::vector<double> x, bool overwrite){
     std::ofstream myfile;
     if(!file_exists(filename) or overwrite){
         myfile.open(filename);
     }else{
         myfile.open(filename, std::ios::app);
     }
-    myfile << x << std::endl;;
+	for(double d : x)
+		myfile << d << std::endl;
     myfile.close();
 }
 

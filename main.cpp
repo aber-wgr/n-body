@@ -108,6 +108,9 @@ int main(int argc, char * argv[]){
         start_time = MPI_Wtime();
     }
 
+    std::vector<double> timings;
+    timings.resize(tmax);
+	
     for(int t = 0; t < tmax; t++){
 
         /* Reset variables */
@@ -162,6 +165,8 @@ int main(int argc, char * argv[]){
             }
         }
 
+
+    	
         if(ip.sampling_interval() == 1 or (t % ip.sampling_interval() == 0 and t != 0)){
 
             /* Stop the time */
@@ -187,13 +192,7 @@ int main(int argc, char * argv[]){
                 // write_bodies(ip.out_file().c_str(), bodies, MPI_COMM_WORLD, false);
             }
 
-            /* Write running time */
-            if(ip.clock_run()){
-                if(rank == 0){
-                    write_to_file(ip.out_time_file().c_str(), stop_time - start_time, overwrite);
-                }
-                
-            }
+            timings.push_back(stop_time - start_time);
 
             if(overwrite){
                 overwrite = false;
@@ -210,6 +209,14 @@ int main(int argc, char * argv[]){
     /* Finalize */
     free_mpi_types();
     MPI_Finalize();
+
+    /* Write running time */
+    if (ip.clock_run()) {
+        if (rank == 0)
+        {
+            write_vector(ip.out_time_file().c_str(), timings, overwrite);
+        }
+    }
    
     if(ip.write_summary()){
         if(rank == 0){
