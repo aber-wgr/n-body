@@ -9,7 +9,7 @@
 #include "body.h"
 #include "inputparser.h"
 
-
+bool file_exists(const std::string& filename);
 void write_tree(const char * filename, const Tree & tree, bool fulltree, bool overwrite);
 
 void write_to_file(const char * filename, const double x, bool overwrite);

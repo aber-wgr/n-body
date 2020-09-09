@@ -12,7 +12,7 @@ using std::copy; using std::fill;
 using std::begin; using std::end;
 
 
-void build_tree(const vector<Body > & bodies, const bound_vec & bounds, const bound_vec & other_bounds,
+void build_tree(BodyManager* bm, const bound_vec & bounds, const bound_vec & other_bounds,
                 const vector<pair<int, bool> > & partners, Tree & tree, int rank){
 
     MPI_Status status;
@@ -23,13 +23,16 @@ void build_tree(const vector<Body > & bodies, const bound_vec & bounds, const bo
     
 
     /* insert cells corresponding to the ORB tree created on this process */
-    for(int i = 0; i < bounds.size(); i++){
-        tree.insert_emptycell(&bounds.at(i).first[0], &bounds.at(i).second[0]);
+    for(int i = 0; i < bounds.size(); i++)
+    {
+        tree.insert_emptycell(bounds.at(i).min_bounds, bounds.at(i).max_bounds);
+        // tree.insert_emptycell(&bounds.at(i).first[0], &bounds.at(i).second[0]);
     }
 
     /* insert bodies residing on this process */
-    for(const Body & b : bodies){
-        tree.insert_body(&b);
+    for(int b = 0;b<bm->localBodies.mass.size();b++)
+    {
+        tree.insert_body(b);
     }
 
     
@@ -42,12 +45,14 @@ void build_tree(const vector<Body > & bodies, const bound_vec & bounds, const bo
 
         /* gets cells to send to other domain*/
         cells_to_send.clear();
-        tree.cells_to_send(&other_bound.first[0], &other_bound.second[0], i, cells_to_send);
+        tree.cells_to_send(other_bound.min_bounds, other_bound.max_bounds, i, cells_to_send);
+        // tree.cells_to_send(&other_bound.first[0], &other_bound.second[0], i, cells_to_send);
 
         send_cells.clear();
         recv_cells.clear();
         /* construct temporary cell objects for transmission */
-        for(Cell * cell : cells_to_send){
+        for(Cell * cell : cells_to_send)
+        {
             MPICell mpi_cell;
             mpi_cell.m = cell->m;
             mpi_cell.parent_idx = cell->parent_idx;
@@ -61,14 +66,16 @@ void build_tree(const vector<Body > & bodies, const bound_vec & bounds, const bo
         partner = partners.at(i).first;
         
         /* send and receive cells from other domain */
-        if(partners.at(i).second){
+        if(partners.at(i).second)
+        {
             MPI_Probe(partner, 0, MPI_COMM_WORLD, &status);
             MPI_Get_count(&status, mpi_cell_type, &n_recv_cells);
             recv_cells.resize(n_recv_cells);
             MPI_Recv(&recv_cells[0], n_recv_cells, mpi_cell_type, partner, 0, MPI_COMM_WORLD, &status);
             MPI_Send(&send_cells[0], send_cells.size(), mpi_cell_type, partner, 0, MPI_COMM_WORLD);
         }
-        else{
+        else
+        {
             MPI_Send(&send_cells[0], send_cells.size(), mpi_cell_type, partner, 0, MPI_COMM_WORLD);
             MPI_Probe(partner, 0, MPI_COMM_WORLD, &status);
             MPI_Get_count(&status, mpi_cell_type, &n_recv_cells);
@@ -88,7 +95,7 @@ void build_tree(const vector<Body > & bodies, const bound_vec & bounds, const bo
         /* prune the tree so as to remove subtrees not needed for evaluating the force
            on each body residing on this process */
         // Must prune tree after inserting since we always send at least one cell
-        tree.prune_tree(&bound.first[0], &bound.second[0]);
+        tree.prune_tree(bound.min_bounds, bound.max_bounds);
     }
 }
 

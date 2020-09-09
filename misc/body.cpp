@@ -14,6 +14,7 @@
 
 #include <sys/stat.h>
 #include <iso646.h>
+#include "readwrite.h"
 
 int BodyManager::AddBody(double pos[3], double vel[3], double m, double w)
 {
@@ -447,18 +448,6 @@ void BodyManager::ReadBodies(const char* filename, MPI_Comm comm)
         int x = 1;
         MPI_Send(&x, 1, MPI_INT, rank + 1, 0, MPI_COMM_WORLD);
     }
-}
-
-#include <sys/stat.h>
-
-bool file_exists(const std::string& filename)
-{
-    struct stat buf;
-    if (stat(filename.c_str(), &buf) != -1)
-    {
-        return true;
-    }
-    return false;
 }
 
 void BodyManager::WriteBodies(const char* filename, MPI_Comm comm, bool overwrite)

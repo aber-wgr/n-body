@@ -24,23 +24,21 @@
 #include "misc/readwrite.h"
 
 /* Tree building */
-#include "tree/orb.h"
 #include "tree/tree.h"
 #include "tree/build_tree.h"
 
 /* Input parsing */
 #include "misc/inputparser.h"
-
-/* Body generator */
-#include "misc/gen_bodies.h"
+#include <iso646.h>
 
 
 int main(int argc, char * argv[]){
     
     int size, rank, tmax, N, nbodies;
-    std::vector<Body> bodies;
+    BodyManager* bodyManager = new BodyManager();
     std::vector<pair<double, int> > splits;
-    vector<pair<array<double, 3>, array<double, 3> > > bounds, other_bounds; 
+    //vector<pair<array<double, 3>, array<double, 3> > > bounds, other_bounds;
+    vector<Bounds> bounds, other_bounds;
     vector<pair<int, bool> > partners;
     vector<double> comp_time;
     double dt, min[3], max[3];
@@ -76,9 +74,10 @@ int main(int argc, char * argv[]){
 
     if(ip.read_bodies()){
         /* Read bodies from file */
-        auto p = read_bodies(ip.in_file().c_str(), MPI_COMM_WORLD);
-        bodies = p.first;
-        N = p.second;
+        bodyManager->ReadBodies(ip.in_file().c_str(), MPI_COMM_WORLD);
+        //auto p = read_bodies(ip.in_file().c_str(), MPI_COMM_WORLD);
+        // bodies = p.first;
+        N = bodyManager->localBodies.mass.size();
     }
     else{
         N = ip.n_bodies();
@@ -87,20 +86,24 @@ int main(int argc, char * argv[]){
             nbodies++;
         }
         double lim = (double) 10 * N;
-        bodies = generate_bodies(nbodies, {{-lim, -lim, -lim}}, {{lim, lim, lim}}, rank);
+        bodyManager->GenerateBodies(nbodies, { {-lim, -lim, -lim} }, { {lim, lim, lim} }, rank);
+        // bodies = generate_bodies(nbodies, {{-lim, -lim, -lim}}, {{lim, lim, lim}}, rank);
     }
 
     /* Write initial positions to file */
     overwrite = true;
-    if(ip.write_positions()){
-        write_bodies(ip.out_file().c_str(), bodies, MPI_COMM_WORLD, overwrite);
+    if(ip.write_positions())
+    {
+        bodyManager->WriteBodies(ip.out_file().c_str(), MPI_COMM_WORLD, overwrite);
+        // write_bodies(ip.out_file().c_str(), bodies, MPI_COMM_WORLD, overwrite);
     }
 
     
     tmax = ip.n_steps(); // number of time steps
     dt = ip.time_step(); // time step
     
-    if(ip.clock_run()){
+    if(ip.clock_run())
+    {
         MPI_Barrier(MPI_COMM_WORLD);
         start_time = MPI_Wtime();
     }
@@ -113,31 +116,40 @@ int main(int argc, char * argv[]){
         partners.clear();
         
         /* Domain composition and transfer of bodies */
-        global_minmax(bodies, min, max);
-        orb(bodies, bounds, other_bounds, partners, min, max, rank, size);
+        bodyManager->GetGlobalMinMax(min, max);
+        //global_minmax(bodies, min, max);
+        bodyManager->Orb(bounds, other_bounds, partners, min, max, rank, size);
+    	//orb(bodies, bounds, other_bounds, partners, min, max, rank, size);
 
         
         /* Build the local tree */
-        Tree tree(min, max, ip.bh_approx_constant());
-        build_tree(bodies, bounds, other_bounds, partners, tree, rank);
+        Tree tree(bodyManager, min, max, ip.bh_approx_constant());
+        build_tree(bodyManager, bounds, other_bounds, partners, tree, rank);
 
         /* Compute forces */
         std::vector<array<double, 3> > forces;
-        for(Body & b : bodies){
+    	for(int b=0;b<bodyManager->localBodies.mass.size();b++)
+    	{
             /* time the computation */
             double start_time = MPI_Wtime();
-            array<double, 3> f = tree.compute_force(&b);
+            array<double, 3> f = tree.compute_force(b);
             /* update the workload for the body */
-            b.work = MPI_Wtime() - start_time;
+            bodyManager->localBodies.work[b] = MPI_Wtime() - start_time;
             forces.push_back(f);
-        }
+    	}
+        
         
         /* Update positions */
-        for (int i = 0; i < bodies.size(); i++) {
-            Body & b = bodies[i];
-            for(int c = 0; c < 3; c++){
-                b.vel[c] = b.vel[c] + forces[i][c] * dt / b.m;
-                b.pos[c] = b.pos[c] + b.vel[c] * dt;
+        for (int i = 0; i < bodyManager->localBodies.mass.size(); i++) 
+        {
+            // Body & b = bodies[i];
+        	
+            for(int c = 0; c < 3; c++)
+            {
+                bodyManager->localBodies.velocity[i * 4 + c] = bodyManager->localBodies.velocity[i * 4 + c] + forces[i][c] * dt / bodyManager->localBodies.mass[i];
+            	// b.vel[c] = b.vel[c] + forces[i][c] * dt / b.m;
+                bodyManager->localBodies.position[i * 4 + c] = bodyManager->localBodies.position[i * 4 + c] + bodyManager->localBodies.velocity[i * 4 + c] * dt;
+            	//b.pos[c] = b.pos[c] + b.vel[c] * dt;
             }
         }
         
@@ -169,8 +181,10 @@ int main(int argc, char * argv[]){
             }
 
             /* Write positions */
-            if(ip.write_positions()){
-                write_bodies(ip.out_file().c_str(), bodies, MPI_COMM_WORLD, false);
+            if(ip.write_positions())
+            {
+                bodyManager->WriteBodies(ip.out_file().c_str(), MPI_COMM_WORLD, false);
+                // write_bodies(ip.out_file().c_str(), bodies, MPI_COMM_WORLD, false);
             }
 
             /* Write running time */

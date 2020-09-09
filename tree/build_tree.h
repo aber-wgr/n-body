@@ -15,7 +15,7 @@ using std::vector; using std::array;
 using std::pair;
 
 
-typedef vector<pair<array<double, 3>, array<double, 3> > > bound_vec;
+typedef vector<Bounds> bound_vec;
 
 /*
 Builds to local tree consisting of the ORB splits and the Barnes-Hut tree. 
@@ -27,7 +27,7 @@ Builds to local tree consisting of the ORB splits and the Barnes-Hut tree.
 @param tree : the tree to build (will be modified)
 @param rank : rank of the process
 */
-void build_tree(const vector<Body > & bodies, const bound_vec & bounds, const bound_vec & other_bounds,
+void build_tree(BodyManager* bm, const bound_vec & bounds, const bound_vec & other_bounds,
                 const vector<pair<int, bool> > & partners, Tree & tree, int rank);
 
 vector<Cell *> construct_received_trees(const vector<MPICell> & recv_cells);
