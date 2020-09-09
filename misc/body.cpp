@@ -231,6 +231,38 @@ int BodyManager::SplitCoord(double* min, double* max)
     return coord;
 }
 
+/**
+double BodyManager::Bisection(double a, double b, double tol, int max_iter)
+{
+
+    double c, fa, fb, fc;
+    int n_iter;
+	
+    fa = f(a);
+    fb = f(b);
+
+    n_iter = 0;
+    while (fabs(b - a) > tol && fa != fb && n_iter < max_iter) {
+        c = (a + b) / 2;
+        fc = f(c);
+
+
+        if (fc == 0) {
+            return c;
+        }
+        else if (fa * fc > 0) {
+            a = c;
+        }
+        else {
+            b = c;
+        }
+        n_iter++;
+    }
+
+    return (a + b) / 2;
+}
+*/
+
 void BodyManager::Orb(std::vector<Bounds>& bounds, std::vector<Bounds>& other_bounds, std::vector<std::pair<int, bool> >& partners, const double* global_min, const double* global_max, int rank, int n_processors)
 {
     // Declare variables
@@ -322,76 +354,77 @@ void BodyManager::Orb(std::vector<Bounds>& bounds, std::vector<Bounds>& other_bo
         this_side.mass.clear();
         this_side.work.clear();
 
-        for (int i = 0; i < localBodies.position.size(); i++)
+        for (int i = 0; i < localBodies.mass.size(); i++)
         {
             if ((localBodies.position[i*4+coord] - split > 0) == above)
             {
                 this_side.position.push_back(localBodies.position[i * 4]);
-                this_side.velocity.push_back(localBodies.velocity.at(i));
+                this_side.velocity.push_back(localBodies.velocity[i * 4]);
                 this_side.mass.push_back(localBodies.mass.at(i));
                 this_side.work.push_back(localBodies.work.at(i));
             }
             else
             {
                 other_side.position.push_back(localBodies.position[i * 4]);
-                other_side.velocity.push_back(localBodies.velocity.at(i));
+                other_side.velocity.push_back(localBodies.velocity[i * 4]);
                 other_side.mass.push_back(localBodies.mass.at(i));
                 other_side.work.push_back(localBodies.work.at(i));
             }
         }
 
-        this_side_size = this_side.position.size();
+        this_side_size = this_side.mass.size();
 
         // Exchange bodies with other side
         // get communication partner
         partner = GetPartner(rank, n_proc_left);
         partners.push_back(std::make_pair(partner, above));
 
-        // must separate send and recieve in order to read incoming size
-        if (above) {
-            // probe recv size and resize vector
-            MPI_Probe(partner, 0, MPI_COMM_WORLD, &status);
-            MPI_Get_count(&status, MPI_DOUBLE, &n_recv_bodies);
-            this_side.position.resize(this_side.position.size() + n_recv_bodies * 4);
-            this_side.velocity.resize(this_side.velocity.size() + n_recv_bodies * 4);
-            this_side.mass.resize(this_side.mass.size() + n_recv_bodies);
-            this_side.work.resize(this_side.work.size() + n_recv_bodies);
-            MPI_Recv(&this_side.position[this_side_size * 4], n_recv_bodies * 4, MPI_DOUBLE,
-                partner, 0, MPI_COMM_WORLD, &status);
-            MPI_Recv(&this_side.velocity[this_side_size * 4], n_recv_bodies * 4, MPI_DOUBLE,
-                partner, 0, MPI_COMM_WORLD, &status);
-            MPI_Recv(&this_side.mass[this_side_size], n_recv_bodies, MPI_DOUBLE,
-                partner, 0, MPI_COMM_WORLD, &status);
-            MPI_Recv(&this_side.work[this_side_size], n_recv_bodies, MPI_DOUBLE,
-                partner, 0, MPI_COMM_WORLD, &status);
+        // pack the sending array
+        std::vector<double> send = other_side.position;
+        send.insert(send.end(), other_side.velocity.begin(), other_side.velocity.end());
+        send.insert(send.end(), other_side.mass.begin(), other_side.mass.end());
+        send.insert(send.end(), other_side.work.begin(), other_side.work.end());
+        if (above) 
+        {
+        	// receive then send
+            // since we're sending as a flat double array, we know we'll be sending n * 10 doubles (pos * 4, vel * 4, mass, work).
 
-            MPI_Send(&other_side.position[0], other_side.position.size() * 4, MPI_DOUBLE, partner, 0, MPI_COMM_WORLD);
-            MPI_Send(&other_side.velocity[0], other_side.velocity.size() * 4, MPI_DOUBLE, partner, 0, MPI_COMM_WORLD);
-            MPI_Send(&other_side.mass[0], other_side.mass.size(), MPI_DOUBLE, partner, 0, MPI_COMM_WORLD);
-            MPI_Send(&other_side.work[0], other_side.work.size(), MPI_DOUBLE, partner, 0, MPI_COMM_WORLD);
+            MPI_Probe(partner, 0, MPI_COMM_WORLD, &status);
+            MPI_Get_count(&status, MPI_DOUBLE, &n_recv_bodies); // length of "send"
+            int n_actual_bodies = n_recv_bodies / 10; //actual body count
+
+            std::vector<double> recv(n_recv_bodies);
+            MPI_Recv(&recv[0], n_recv_bodies, MPI_DOUBLE, partner, 0, MPI_COMM_WORLD, &status);
+            MPI_Send(&send[0], send.size(), MPI_DOUBLE, partner, 0, MPI_COMM_WORLD);
+
+            auto posEnd = recv.begin() + n_actual_bodies * 4;
+            auto velEnd = recv.begin() + n_actual_bodies * 8;
+            auto massEnd = recv.begin() + n_actual_bodies * 9;
+        	
+            this_side.position.insert(this_side.position.end(), recv.begin(), posEnd);
+            this_side.velocity.insert(this_side.velocity.end(), posEnd, velEnd);
+            this_side.mass.insert(this_side.mass.end(), velEnd, massEnd);
+            this_side.work.insert(this_side.work.end(), massEnd, recv.end());
         }
         else {
-            // send bodies
-            MPI_Send(&other_side.position[0], other_side.position.size() * 4, MPI_DOUBLE, partner, 0, MPI_COMM_WORLD);
-            MPI_Send(&other_side.velocity[0], other_side.velocity.size() * 4, MPI_DOUBLE, partner, 0, MPI_COMM_WORLD);
-            MPI_Send(&other_side.mass[0], other_side.mass.size(), MPI_DOUBLE, partner, 0, MPI_COMM_WORLD);
-            MPI_Send(&other_side.work[0], other_side.work.size(), MPI_DOUBLE, partner, 0, MPI_COMM_WORLD);
+            // send then receive
+            MPI_Send(&send[0], send.size(), MPI_DOUBLE, partner, 0, MPI_COMM_WORLD);
 
-            // probe recv size and resize vector
+            // probe recv size and resize vector (same caveat as above)
             MPI_Probe(partner, 0, MPI_COMM_WORLD, &status);
             MPI_Get_count(&status, MPI_DOUBLE, &n_recv_bodies);
-            this_side.position.resize(this_side.position.size() + n_recv_bodies * 4);
-            this_side.velocity.resize(this_side.velocity.size() + n_recv_bodies * 4);
-            this_side.mass.resize(this_side.mass.size() + n_recv_bodies);
-            this_side.work.resize(this_side.work.size() + n_recv_bodies);
-            MPI_Recv(&this_side.position[this_side_size * 4], n_recv_bodies * 4, MPI_DOUBLE,
-                partner, 0, MPI_COMM_WORLD, &status);
-            MPI_Recv(&this_side.velocity[this_side_size * 4], n_recv_bodies * 4, MPI_DOUBLE,
-                partner, 0, MPI_COMM_WORLD, &status);
-            MPI_Recv(&this_side.mass[this_side_size], n_recv_bodies, MPI_DOUBLE,
-                partner, 0, MPI_COMM_WORLD, &status);
-            MPI_Recv(&this_side.work[this_side_size], n_recv_bodies, MPI_DOUBLE,
-                partner, 0, MPI_COMM_WORLD, &status);
+            int n_actual_bodies = n_recv_bodies / 10;
+            std::vector<double> recv(n_recv_bodies);
+            MPI_Recv(&recv[0], n_recv_bodies, MPI_DOUBLE, partner, 0, MPI_COMM_WORLD, &status);
+
+            auto posEnd = recv.begin() + n_actual_bodies * 4;
+            auto velEnd = recv.begin() + n_actual_bodies * 8;
+            auto massEnd = recv.begin() + n_actual_bodies * 9;
+
+            this_side.position.insert(this_side.position.end(), recv.begin(), posEnd);
+            this_side.velocity.insert(this_side.velocity.end(), posEnd, velEnd);
+            this_side.mass.insert(this_side.mass.end(), velEnd, massEnd);
+            this_side.work.insert(this_side.work.end(), massEnd, recv.end());
         }
 
         // Update bodies

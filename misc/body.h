@@ -61,6 +61,7 @@ public:
 	void Orb(std::vector<Bounds>& bounds, std::vector<Bounds>& other_bounds, std::vector<std::pair<int, bool> > & partners, const double * global_min, const double * global_max, int rank, int n_processors);
 
     int SplitCoord(double* min, double* max);
+    double Bisection(double a, double b, double tol, int max_iter);
 	
     void WriteBodies(const char* filename, MPI_Comm comm, bool overwrite);
     void ReadBodies(const char* filename, MPI_Comm comm);

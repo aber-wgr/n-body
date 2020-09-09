@@ -28,7 +28,8 @@ double bisection(double a, double b, std::function<double (double)> f, double to
     double c, fa, fb, fc;
     int n_iter;
 
-    fa = f(a); fb = f(b);
+    fa = f(a);
+	fb = f(b);
 
     n_iter = 0;
     while(fabs(b-a) > tol && fa != fb && n_iter < max_iter){
