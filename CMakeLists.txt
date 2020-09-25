@@ -8,6 +8,10 @@ include_directories(${MPI_INCLUDE_PATH})
 
 set(CMAKE_CXX_COMPILER mpicxx)
 
+#set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_BUILD_TYPE Release)
+set_directory_properties(PROPERTIES COMPILE_DEFINITIONS_DEBUG "_DEBUG")
+
 set(SOURCE_FILES
         misc/body.cpp
         misc/body.h
