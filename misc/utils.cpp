@@ -9,6 +9,7 @@ std::ofstream outfile;
 
 void DebugOutput(std::string s, int rank)
 {
+#ifdef _DEBUG
     if (!outfile.is_open())
     {
         std::string fn = "Core" + std::to_string(rank) + ".txt";
@@ -16,6 +17,7 @@ void DebugOutput(std::string s, int rank)
     }
 	outfile << "Core " << std::to_string(rank) << ":" << s << std::endl;
     std::cout << "Core " << std::to_string(rank) << ":" << s << std::endl;
+#endif
 }
 
 double secant(double a, double b, std::function<double (double)> f, double tol, int max_iter){
