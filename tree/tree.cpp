@@ -352,12 +352,12 @@ array<double, 3> Tree::compute_force(int bodyIndex) {
 array<double, 3> Tree::compute_force(const Cell* cell, int bodyIndex) {
 
     /* if cell is non empty and we dont want to open it or it is leaf cell */
-    auto bodies = bodyManager->localBodies;
-    auto pos = bodies.position.data() + bodyIndex * 4;
+    //auto bodies = bodyManager->localBodies;
+    auto pos = bodyManager->localBodies.position.data() + bodyIndex * 4;
     if (cell->m != 0 and (!opening_criterion(cell, pos, pos) or cell->subcells[0] == nullptr)) {
         if (cell->body != bodyIndex) {
             /* evaluate force */
-            return eval_force(cell->rm, cell->m, pos, bodies.mass[bodyIndex]);
+            return eval_force(cell->rm, cell->m, pos, bodyManager->localBodies.mass[bodyIndex]);
         }
         /* is this really needed? */
         else {
