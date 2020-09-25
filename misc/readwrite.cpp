@@ -89,14 +89,28 @@ void write_bodies(const char * filename, const std::vector<Body> & bodies, MPI_C
     }
 }
 
-void write_to_file(const char * filename, const double x, bool overwrite){
+void write_to_file(const char* filename, double x, bool overwrite) {
     std::ofstream myfile;
-    if(!file_exists(filename) or overwrite){
+    if (!file_exists(filename) or overwrite) {
         myfile.open(filename);
-    }else{
+    }
+    else {
         myfile.open(filename, std::ios::app);
     }
-    myfile << x << std::endl;;
+    myfile << x << std::endl;
+    myfile.close();
+}
+
+void write_vector(const char* filename, std::vector<double> x, bool overwrite) {
+    std::ofstream myfile;
+    if (!file_exists(filename) or overwrite) {
+        myfile.open(filename);
+    }
+    else {
+        myfile.open(filename, std::ios::app);
+    }
+    for (double d : x)
+        myfile << d << std::endl;
     myfile.close();
 }
 
