@@ -109,7 +109,7 @@ int main(int argc, char * argv[]){
     }
 
     std::vector<double> timings;
-    timings.resize(tmax);
+    // timings.resize(tmax);
 	
     for(int t = 0; t < tmax; t++){
 

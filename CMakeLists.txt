@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.6)
 project(n_body)
 
 set(CMAKE_CXX_STANDARD 11)
+#set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_BUILD_TYPE Release)
+set_directory_properties(PROPERTIES COMPILE_DEFINITIONS_DEBUG "_DEBUG")
 
 find_package(MPI REQUIRED)
 include_directories(${MPI_INCLUDE_PATH})
