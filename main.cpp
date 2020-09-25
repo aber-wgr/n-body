@@ -30,6 +30,7 @@
 /* Input parsing */
 #include "misc/inputparser.h"
 #include <iso646.h>
+#include "misc/utils.h"
 
 
 int main(int argc, char * argv[]){
@@ -121,23 +122,25 @@ int main(int argc, char * argv[]){
         /* Domain composition and transfer of bodies */
         bodyManager->GetGlobalMinMax(min, max);
         //global_minmax(bodies, min, max);
+        DebugOutput("BEFORE ORB", rank);
         bodyManager->Orb(bounds, other_bounds, partners, min, max, rank, size);
     	//orb(bodies, bounds, other_bounds, partners, min, max, rank, size);
-
+        DebugOutput("AFTER ORB", rank);
         
         /* Build the local tree */
         Tree tree(bodyManager, min, max, ip.bh_approx_constant());
+        //DebugOutput("TREE CONSTRUCTED,BUILDING", rank);
         build_tree(bodyManager, bounds, other_bounds, partners, tree, rank);
-
+        //DebugOutput("TREE BUILT", rank);
         /* Compute forces */
         std::vector<array<double, 3> > forces;
     	for(int b=0;b<bodyManager->localBodies.mass.size();b++)
     	{
             /* time the computation */
-            double start_time = MPI_Wtime();
+            double compute_time = MPI_Wtime();
             array<double, 3> f = tree.compute_force(b);
             /* update the workload for the body */
-            bodyManager->localBodies.work[b] = MPI_Wtime() - start_time;
+            bodyManager->localBodies.work[b] = MPI_Wtime() - compute_time;
             forces.push_back(f);
     	}
         
@@ -192,7 +195,8 @@ int main(int argc, char * argv[]){
                 // write_bodies(ip.out_file().c_str(), bodies, MPI_COMM_WORLD, false);
             }
 
-            timings.push_back(stop_time - start_time);
+        	if (rank == 0)
+				timings.push_back(stop_time - start_time);
 
             if(overwrite){
                 overwrite = false;
@@ -224,6 +228,6 @@ int main(int argc, char * argv[]){
         }
     }
     
-
+    delete bodyManager;
 }
 

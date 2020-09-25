@@ -15,6 +15,7 @@
 #include <sys/stat.h>
 #include <iso646.h>
 #include "readwrite.h"
+#include <memory.h>
 
 int BodyManager::AddBody(double pos[3], double vel[3], double m, double w)
 {
@@ -234,6 +235,7 @@ int BodyManager::SplitCoord(double* min, double* max)
 
 void BodyManager::Orb(std::vector<Bounds>& bounds, std::vector<Bounds>& other_bounds, std::vector<std::pair<int, bool> >& partners, const double* global_min, const double* global_max, int rank, int n_processors)
 {
+    DebugOutput("ENTERING ORB FUNCTION", rank);
     // Declare variables
     int coord, partner, n_recv_bodies, color, this_side_size;
     int n_splits, n_proc_left;
@@ -242,7 +244,7 @@ void BodyManager::Orb(std::vector<Bounds>& bounds, std::vector<Bounds>& other_bo
     BodySet other_side, this_side;
     std::function<double(double)> f;
     MPI_Status status;
-    MPI_Comm subset_comm;
+    
     array<double, 3> min_bounds, max_bounds, min, max, other_min, other_max;
 
     // Copy over global min and max
@@ -255,7 +257,10 @@ void BodyManager::Orb(std::vector<Bounds>& bounds, std::vector<Bounds>& other_bo
 
     // split until number of processes in subset is 1
     n_splits = log2(n_processors);
-    for (int i = 0; i < n_splits; i++) {
+    for (int i = 0; i < n_splits; i++) 
+    {
+        MPI_Comm subset_comm;
+        DebugOutput("Running split " + std::to_string(i+1) + "/" + std::to_string(n_splits), rank);
         n_proc_left = n_processors / pow(2, i);
 
         // Find split in current subset of processors
@@ -266,24 +271,37 @@ void BodyManager::Orb(std::vector<Bounds>& bounds, std::vector<Bounds>& other_bo
         if (above) {
             color |= 1;
         }
-
+        DebugOutput("Comm color set to " + std::to_string(color), rank);
         // split the world comm to processor subset
+        DebugOutput("Just before MPI_Comm_split", rank);
         MPI_Comm_split(MPI_COMM_WORLD, color, rank, &subset_comm);
+        DebugOutput("Just after MPI_Comm_split", rank);
 
         // choose cartesian coordinate to split
         coord = SplitCoord(min.data(), max.data());
+        std::string crd = "x";
+    	if (coord > 0) crd = "y";
+        if (coord > 1) crd = "z";
+        DebugOutput("Chosen split on " + crd + "/" + std::to_string(coord), rank);
 
         // find split through the bisection method
         // which divides workload equally
         f = [&](double split) {return WeightFrac(split, coord, subset_comm) - 0.5; };
         split = bisection(min[coord], max[coord], f);
 
+        DebugOutput("Splitting at " + std::to_string(split), rank);
+    	
         // free comm
+        DebugOutput("Just before MPI_Comm_free", rank);
         MPI_Comm_free(&subset_comm);
+        DebugOutput("Just after MPI_Comm_free", rank);
 
         // Decide if process is above or below split
+        DebugOutput("Just before IsAboveSplit", rank);
         above = IsAboveSplit(rank, n_proc_left);
-
+        DebugOutput("Just after IsAboveSplit", rank);
+        std::string ab = above ? "above" : "below";
+        DebugOutput("This process is " + ab + " the split", rank);
 
         // Save bounds
         other_min = min;
@@ -309,6 +327,13 @@ void BodyManager::Orb(std::vector<Bounds>& bounds, std::vector<Bounds>& other_bo
         here.max_bounds[3] = 0.0;
         there.min_bounds[3] = 0.0;
         there.max_bounds[3] = 0.0;
+
+        std::string here_b = "(" + std::to_string(here.min_bounds[0]) + "," + std::to_string(here.min_bounds[1]) + "," + std::to_string(here.min_bounds[2]) + "," + std::to_string(here.min_bounds[3]) + ")";
+        std::string there_b = "(" + std::to_string(there.min_bounds[0]) + "," + std::to_string(there.min_bounds[1]) + "," + std::to_string(there.min_bounds[2]) + "," + std::to_string(there.min_bounds[3]) + ")";
+    	
+        DebugOutput("Bounds here " + here_b, rank);
+        DebugOutput("Bounds there " + there_b, rank);
+    	
         bounds.push_back(here);
         other_bounds.push_back(there);
 
@@ -325,8 +350,11 @@ void BodyManager::Orb(std::vector<Bounds>& bounds, std::vector<Bounds>& other_bo
 
         for (int i = 0; i < localBodies.mass.size(); i++)
         {
+            std::string ppp = "(" + std::to_string(localBodies.position[i*4+0]) + "," + std::to_string(localBodies.position[i * 4 + 1]) + "," + std::to_string(localBodies.position[i * 4 + 2]) + "," + std::to_string(localBodies.position[i * 4 + 3]) + ")";
+            DebugOutput("Locating Body #" + std::to_string(i) + " position " + ppp, rank);
             if ((localBodies.position[i*4+coord] - split > 0) == above)
             {
+                DebugOutput("is this side",rank);
                 for (int j = 0; j < 4; j++)
                 {
                     this_side.position.push_back(localBodies.position[i * 4 + j]);
@@ -337,6 +365,7 @@ void BodyManager::Orb(std::vector<Bounds>& bounds, std::vector<Bounds>& other_bo
             }
             else
             {
+                DebugOutput("is other side", rank);
                 for (int j = 0; j < 4; j++)
                 {
                     other_side.position.push_back(localBodies.position[i * 4 + j]);
@@ -349,29 +378,58 @@ void BodyManager::Orb(std::vector<Bounds>& bounds, std::vector<Bounds>& other_bo
 
         this_side_size = this_side.mass.size();
 
+        DebugOutput("This side size:" + std::to_string(this_side_size), rank);
+        DebugOutput("Other side size:" + std::to_string(other_side.mass.size()), rank);
+    	
         // Exchange bodies with other side
         // get communication partner
         partner = GetPartner(rank, n_proc_left);
         partners.push_back(std::make_pair(partner, above));
 
         // pack the sending array
-        std::vector<double> send = other_side.position;
-        send.insert(send.end(), other_side.velocity.begin(), other_side.velocity.end());
-        send.insert(send.end(), other_side.mass.begin(), other_side.mass.end());
-        send.insert(send.end(), other_side.work.begin(), other_side.work.end());
+        //size_t send_size = other_side.position.size() + other_side.velocity.size() + other_side.mass.size() + other_side.work.size();
+        //std::vector<double> send = other_side.position;
+        //send.resize(send_size);
+        //send.insert(send.end(), other_side.velocity.begin(), other_side.velocity.end());
+        //send.insert(send.end(), other_side.mass.begin(), other_side.mass.end());
+        //send.insert(send.end(), other_side.work.begin(), other_side.work.end());
+
+        // DebugOutput("just before send array build", rank);
+
+        size_t pos_size = other_side.position.size();
+    	size_t vel_size = other_side.velocity.size();
+        size_t mass_size = other_side.mass.size();
+        size_t work_size = other_side.work.size();
+
+        size_t send_size = pos_size + vel_size + mass_size + work_size;
+
+        double* mem_send = (double*)malloc(send_size * sizeof(double));
+        std::fill(mem_send, mem_send+(send_size), 1.0);
+        
+        std::copy(other_side.position.begin(), other_side.position.end(), mem_send);
+        std::copy(other_side.velocity.begin(), other_side.velocity.end(), mem_send + pos_size);
+        std::copy(other_side.mass.begin(), other_side.mass.end(), mem_send + pos_size + vel_size);
+        std::copy(other_side.work.begin(), other_side.work.end(), mem_send + pos_size + vel_size + mass_size);
+    	
+        DebugOutput("send array built", rank);
+    	
         if (above) 
         {
         	// receive then send
             // since we're sending as a flat double array, we know we'll be sending n * 10 doubles (pos * 4, vel * 4, mass, work).
 
+        	DebugOutput("above: receive then send", rank);
+            DebugOutput("to partner " + std::to_string(partner), rank);
             MPI_Probe(partner, 0, MPI_COMM_WORLD, &status);
             MPI_Get_count(&status, MPI_DOUBLE, &n_recv_bodies); // length of "send"
+            DebugOutput("Receive Data Count:" + std::to_string(n_recv_bodies), rank);
             int n_actual_bodies = n_recv_bodies / 10; //actual body count
 
             std::vector<double> recv(n_recv_bodies);
             MPI_Recv(recv.data(), n_recv_bodies, MPI_DOUBLE, partner, 0, MPI_COMM_WORLD, &status);
-            MPI_Send(send.data(), send.size(), MPI_DOUBLE, partner, 0, MPI_COMM_WORLD);
-
+            DebugOutput("Receive Done", rank);
+            MPI_Send(mem_send, send_size, MPI_DOUBLE, partner, 0, MPI_COMM_WORLD);
+            DebugOutput("Send Done", rank);
             auto posEnd = recv.begin() + n_actual_bodies * 4;
             auto velEnd = recv.begin() + n_actual_bodies * 8;
             auto massEnd = recv.begin() + n_actual_bodies * 9;
@@ -379,18 +437,23 @@ void BodyManager::Orb(std::vector<Bounds>& bounds, std::vector<Bounds>& other_bo
             this_side.position.insert(this_side.position.end(), recv.begin(), posEnd);
             this_side.velocity.insert(this_side.velocity.end(), posEnd, velEnd);
             this_side.mass.insert(this_side.mass.end(), velEnd, massEnd);
-            this_side.work.insert(this_side.work.end(), massEnd, recv.end());
+            this_side.work.insert(this_side.work.end(), massEnd, recv.end());  
         }
-        else {
-            // send then receive
-            MPI_Send(send.data(), send.size(), MPI_DOUBLE, partner, 0, MPI_COMM_WORLD);
-
+        else 
+        {
+            DebugOutput("below: send then receive", rank);
+            DebugOutput("to partner " + std::to_string(partner), rank);
+        	// send then receive
+            MPI_Send(mem_send, send_size, MPI_DOUBLE, partner, 0, MPI_COMM_WORLD);
+            DebugOutput("Send Done", rank);
             // probe recv size and resize vector (same caveat as above)
             MPI_Probe(partner, 0, MPI_COMM_WORLD, &status);
             MPI_Get_count(&status, MPI_DOUBLE, &n_recv_bodies);
+            DebugOutput("Receive Data Count:" + std::to_string(n_recv_bodies), rank);
             int n_actual_bodies = n_recv_bodies / 10;
             std::vector<double> recv(n_recv_bodies);
             MPI_Recv(recv.data(), n_recv_bodies, MPI_DOUBLE, partner, 0, MPI_COMM_WORLD, &status);
+            DebugOutput("Receive Done", rank);
 
             auto posEnd = recv.begin() + n_actual_bodies * 4;
             auto velEnd = recv.begin() + n_actual_bodies * 8;
@@ -401,10 +464,25 @@ void BodyManager::Orb(std::vector<Bounds>& bounds, std::vector<Bounds>& other_bo
             this_side.mass.insert(this_side.mass.end(), velEnd, massEnd);
             this_side.work.insert(this_side.work.end(), massEnd, recv.end());
         }
-
+    	DebugOutput("Data resorted", rank);
+        DebugOutput("this side size after appending:" + std::to_string(this_side.mass.size()), rank);
+        DebugOutput("this side positions after appending:" + std::to_string(this_side.position.size()), rank);
+    	for(int n=0;n<this_side.mass.size();n++)
+    	{
+            std::string ppos = "Position #" + std::to_string(n) + "(" + std::to_string(this_side.position[n * 4 + 0]) + "," + std::to_string(this_side.position[n * 4 + 1]) + "," + std::to_string(this_side.position[n * 4 + 2]) + "," + std::to_string(this_side.position[n * 4 + 3]) + ")";
+            DebugOutput(ppos, rank);
+    	}
+        DebugOutput("Body sending done", rank);
+        
+    	free(mem_send);
+        //delete(mem_send);
+        /*
         // Update bodies
         localBodies = this_side;
+        */
     }
+
+    DebugOutput("LEAVING ORB FUNCTION", rank);
 }
 
 

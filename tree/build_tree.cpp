@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <mpi.h>
 #include "../misc/mpi_types.h"
+#include "../misc/utils.h"
 
 using std::cout; using std::endl;
 using std::copy; using std::fill;
@@ -13,8 +14,9 @@ using std::begin; using std::end;
 
 
 void build_tree(BodyManager* bm, const bound_vec & bounds, const bound_vec & other_bounds,
-                const vector<pair<int, bool> > & partners, Tree & tree, int rank){
-
+                const vector<pair<int, bool> > & partners, Tree & tree, int rank)
+{
+    // DebugOutput("BUILDING TREE", rank);
     MPI_Status status;
     int n_recv_cells, partner;
     vector<Cell *> cells_to_send;
@@ -28,17 +30,21 @@ void build_tree(BodyManager* bm, const bound_vec & bounds, const bound_vec & oth
         tree.insert_emptycell(bounds.at(i).min_bounds, bounds.at(i).max_bounds);
         // tree.insert_emptycell(&bounds.at(i).first[0], &bounds.at(i).second[0]);
     }
-
+    // DebugOutput("Cells inserted", rank);
     /* insert bodies residing on this process */
+    // DebugOutput("Inserting " + std::to_string(bm->localBodies.mass.size()) + " bodies", rank);
     for(int b = 0;b<bm->localBodies.mass.size();b++)
     {
         tree.insert_body(b);
     }
-
+    // DebugOutput("Bodies inserted", rank);
     
     /* receive and send cells to other processes */
     /* loop over each split from the ORB */
-    for(int i = 0; i < bounds.size(); i++){
+    // DebugOutput("Before bounds loop", rank);
+    for(int i = 0; i < bounds.size(); i++)
+    {
+        // DebugOutput("Bounds loop" + std::to_string(i+1) + "/" + std::to_string(bounds.size()), rank);
         /* boundaries of the ORB split */
         const auto & bound = bounds.at(i);
         const auto & other_bound = other_bounds.at(i);
@@ -47,7 +53,7 @@ void build_tree(BodyManager* bm, const bound_vec & bounds, const bound_vec & oth
         cells_to_send.clear();
         tree.cells_to_send(other_bound.min_bounds, other_bound.max_bounds, i, cells_to_send);
         // tree.cells_to_send(&other_bound.first[0], &other_bound.second[0], i, cells_to_send);
-
+        // DebugOutput("Generated cells to send", rank);
         send_cells.clear();
         recv_cells.clear();
         /* construct temporary cell objects for transmission */
@@ -61,6 +67,7 @@ void build_tree(BodyManager* bm, const bound_vec & bounds, const bound_vec & oth
             copy(begin(cell->rm), end(cell->rm), begin(mpi_cell.rm));         
             send_cells.push_back(mpi_cell);
         }
+        // DebugOutput("Built MPI cells", rank);
         
         /* get communication partner (same as during ORB) */
         partner = partners.at(i).first;
@@ -68,35 +75,47 @@ void build_tree(BodyManager* bm, const bound_vec & bounds, const bound_vec & oth
         /* send and receive cells from other domain */
         if(partners.at(i).second)
         {
+            // DebugOutput("Tree receive then send with partner:" + std::to_string(partner), rank);
             MPI_Probe(partner, 0, MPI_COMM_WORLD, &status);
             MPI_Get_count(&status, mpi_cell_type, &n_recv_cells);
+            // DebugOutput("Tree cell receive count:" + std::to_string(n_recv_cells), rank);
             recv_cells.resize(n_recv_cells);
             MPI_Recv(&recv_cells[0], n_recv_cells, mpi_cell_type, partner, 0, MPI_COMM_WORLD, &status);
+            // DebugOutput("Tree receive done", rank);
+            // DebugOutput("Sending " + std::to_string(send_cells.size()) + " cells", rank);
             MPI_Send(&send_cells[0], send_cells.size(), mpi_cell_type, partner, 0, MPI_COMM_WORLD);
+            // DebugOutput("Tree send done", rank);
         }
         else
         {
+            // DebugOutput("Tree send then receive with partner" + std::to_string(partner), rank);
+            // DebugOutput("Sending " + std::to_string(send_cells.size()) + " cells", rank);
             MPI_Send(&send_cells[0], send_cells.size(), mpi_cell_type, partner, 0, MPI_COMM_WORLD);
+            //DebugOutput("Tree send done", rank);
             MPI_Probe(partner, 0, MPI_COMM_WORLD, &status);
             MPI_Get_count(&status, mpi_cell_type, &n_recv_cells);
+            //DebugOutput("Tree cell receive count:" + std::to_string(n_recv_cells), rank);
             recv_cells.resize(n_recv_cells);
             MPI_Recv(&recv_cells[0], n_recv_cells, mpi_cell_type, partner, 0, MPI_COMM_WORLD, &status);
+            //DebugOutput("Tree receive done", rank);
         }
         
-
+        //DebugOutput("Tree transmission done", rank);
         /* construct subrees of received cells */
         vector<Cell *> root_cells = construct_received_trees(recv_cells);
-
+        //DebugOutput("Tree reconstruction done", rank);
         /* insert received cells into tree */
         for(Cell * cell : root_cells){
             tree.insert_cell(cell);
         } 
-
+        //DebugOutput("Tree cells inserted", rank);
         /* prune the tree so as to remove subtrees not needed for evaluating the force
            on each body residing on this process */
         // Must prune tree after inserting since we always send at least one cell
         tree.prune_tree(bound.min_bounds, bound.max_bounds);
+        //DebugOutput("Tree prune done", rank);
     }
+    //DebugOutput("Tree rebuild completed", rank);
 }
 
 

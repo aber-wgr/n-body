@@ -26,7 +26,7 @@ void write_to_file(const char* filename, double x, bool overwrite) {
     else {
         myfile.open(filename, std::ios::app);
     }
-    myfile << x << std::endl;
+    myfile << std::to_string(x) << std::endl;
     myfile.close();
 }
 
@@ -38,7 +38,7 @@ void write_vector(const char * filename, std::vector<double> x, bool overwrite){
         myfile.open(filename, std::ios::app);
     }
 	for(double d : x)
-		myfile << d << std::endl;
+		myfile << std::to_string(d) << std::endl;
     myfile.close();
 }
 
