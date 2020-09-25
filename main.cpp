@@ -110,7 +110,6 @@ int main(int argc, char * argv[]){
     }
 
     std::vector<double> timings;
-    timings.resize(tmax);
 	
     for(int t = 0; t < tmax; t++){
 
@@ -195,8 +194,12 @@ int main(int argc, char * argv[]){
                 // write_bodies(ip.out_file().c_str(), bodies, MPI_COMM_WORLD, false);
             }
 
-        	if (rank == 0)
-				timings.push_back(stop_time - start_time);
+            if (rank == 0)
+            {
+                double n = stop_time - start_time;
+                // std::cout << "Timing point. Start time:" << std::to_string(start_time) << " Stop Time:" << std::to_string(stop_time) << std::endl;
+                timings.push_back(stop_time - start_time);
+            }
 
             if(overwrite){
                 overwrite = false;
