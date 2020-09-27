@@ -132,7 +132,7 @@ void Tree::insert_emptycell(Cell * cell, const double * min_bounds, const double
             return;
         }
     }
-    throw "ERROR: Could not fit the empty cell in any cell in the tree";
+    throw std::string("ERROR: Could not fit the empty cell in any cell in the tree");
 }
 
 void Tree::insert_cell(Cell * cell_to_insert){
@@ -164,7 +164,7 @@ void Tree::insert_cell(Cell * cell, Cell * cell_to_insert){
             return;
         }
     }
-    throw "ERROR: Could not fit the cell in any cell in the tree";
+    throw std::string("ERROR: Could not fit the cell in any cell in the tree");
 }
 
 void Tree::insert_cell(const double * min_bounds, const double * max_bounds, double m, const double * rm){
@@ -209,7 +209,7 @@ void Tree::insert_cell(Cell * cell,
 
     }
     
-    throw "ERROR: Could not fit the cell in any cell in the tree";
+    throw std::string("ERROR: Could not fit the cell in any cell in the tree");
 }
     
 string Tree::to_string(bool fulltree) const {
