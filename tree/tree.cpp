@@ -132,7 +132,11 @@ void Tree::insert_emptycell(Cell * cell, const double * min_bounds, const double
             return;
         }
     }
-    throw std::string("ERROR: Could not fit the empty cell in any cell in the tree");
+    const std::string error = "ERROR: Could not fit the empty cell in any cell in the tree";
+    std::cerr << error;
+    const std::string err_detail = "Bounds: (" + std::to_string(min_bounds[0]) + "," + std::to_string(min_bounds[1]) + "," + std::to_string(min_bounds[2]) + "->" + std::to_string(min_bounds[0]) + "," + std::to_string(min_bounds[1]) + "," + std::to_string(min_bounds[2]) + ")";
+    std::cerr << "Details:" << std::endl << err_detail << std::endl;
+    throw error;
 }
 
 void Tree::insert_cell(Cell * cell_to_insert){
@@ -164,7 +168,11 @@ void Tree::insert_cell(Cell * cell, Cell * cell_to_insert){
             return;
         }
     }
-    throw std::string("ERROR: Could not fit the cell in any cell in the tree");
+    const std::string error = "ERROR: Could not fit the cell in any cell in the tree";
+    std::cerr << error;
+    const std::string err_detail = "Bounds: (" + std::to_string(cell_to_insert->min_bounds[0]) + "," + std::to_string(cell_to_insert->min_bounds[1]) + "," + std::to_string(cell_to_insert->min_bounds[2]) + "->" + std::to_string(cell_to_insert->min_bounds[0]) + "," + std::to_string(cell_to_insert->min_bounds[1]) + "," + std::to_string(cell_to_insert->min_bounds[2]) + ")";
+    std::cerr << "Details:" << std::endl << err_detail << std::endl;
+    throw std::string(error);
 }
 
 void Tree::insert_cell(const double * min_bounds, const double * max_bounds, double m, const double * rm){
@@ -208,8 +216,11 @@ void Tree::insert_cell(Cell * cell,
         }
 
     }
-    
-    throw std::string("ERROR: Could not fit the cell in any cell in the tree");
+    const std::string error = "ERROR: Could not fit the cell in any cell in the tree";
+    std::cerr << error;
+    const std::string err_detail = "Bounds: (" + std::to_string(min_bounds[0]) + "," + std::to_string(min_bounds[1]) + "," + std::to_string(min_bounds[2]) + "->" + std::to_string(min_bounds[0]) + "," + std::to_string(min_bounds[1]) + "," + std::to_string(min_bounds[2]) + ")";
+    std::cerr << "Details:" << std::endl << err_detail << std::endl;
+    throw std::string(error);
 }
     
 string Tree::to_string(bool fulltree) const {
