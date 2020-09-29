@@ -168,8 +168,8 @@ void Tree::insert_cell(Cell * cell, Cell * cell_to_insert){
             return;
         }
     }
-    const std::string error = "ERROR: Could not fit the cell in any cell in the tree";
-    std::cerr << error;
+    const std::string error = "ERROR: Could not fit the cell in any cell in the tree (insert cell,cell)";
+    std::cerr << error << std::endl;
     const std::string err_detail = "Bounds: (" + std::to_string(cell_to_insert->min_bounds[0]) + "," + std::to_string(cell_to_insert->min_bounds[1]) + "," + std::to_string(cell_to_insert->min_bounds[2]) + "->" + std::to_string(cell_to_insert->min_bounds[0]) + "," + std::to_string(cell_to_insert->min_bounds[1]) + "," + std::to_string(cell_to_insert->min_bounds[2]) + ")";
     std::cerr << "Details:" << std::endl << err_detail << std::endl;
     throw std::string(error);
@@ -216,8 +216,8 @@ void Tree::insert_cell(Cell * cell,
         }
 
     }
-    const std::string error = "ERROR: Could not fit the cell in any cell in the tree";
-    std::cerr << error;
+    const std::string error = "ERROR: Could not fit the cell in any cell in the tree (insert cell, bounds)";
+    std::cerr << error << std::endl;
     const std::string err_detail = "Bounds: (" + std::to_string(min_bounds[0]) + "," + std::to_string(min_bounds[1]) + "," + std::to_string(min_bounds[2]) + "->" + std::to_string(min_bounds[0]) + "," + std::to_string(min_bounds[1]) + "," + std::to_string(min_bounds[2]) + ")";
     std::cerr << "Details:" << std::endl << err_detail << std::endl;
     throw std::string(error);
