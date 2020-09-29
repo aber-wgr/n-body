@@ -64,7 +64,7 @@ public:
     double Bisection(double a, double b, double tol, int max_iter);
 	
     void WriteBodies(const char* filename, MPI_Comm comm, bool overwrite);
-    void ReadBodies(const char* filename, MPI_Comm comm);
+    int ReadBodies(const char* filename, MPI_Comm comm);
 };
 
 #endif // _BODY_H_N_BODY_

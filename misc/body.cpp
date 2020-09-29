@@ -107,34 +107,6 @@ double f_rand(double f_min, double f_max)
     return f_min + f * (f_max - f_min);
 }
 
-void BodyManager::GenerateBodies(int n, std::array<double, 3> min, std::array<double, 3> max, int rank)
-{
-    srand(100 * rank);
-	
-    for (int i = 0; i < n; i++) {
-        // pre-unrolled
-        double newPos[4];
-        newPos[0] = f_rand(min[0], max[0]);
-        newPos[1] = f_rand(min[1], max[1]);
-        newPos[2] = f_rand(min[2], max[2]);
-        newPos[3] = 0.0;
-
-        double newVel[4];
-        newVel[0] = 0.0;
-        newVel[1] = 0.0;
-        newVel[2] = 0.0;
-        newVel[3] = 0.0;
-        for (int j = 0; j < 4; j++)
-        {
-            localBodies.position.push_back(newPos[j]);
-            localBodies.velocity.push_back(newVel[j]);
-        }
-        localBodies.mass.push_back(f_rand(0.5, 1));
-        localBodies.work.push_back(1);
-        localBodies.nextIndex++;
-    }
-}
-
 void BodyManager::GetLocalMinMax(double* min, double* max)
 {
     // This is one example of why I haven't joined the position and velocity values together.
@@ -485,8 +457,35 @@ void BodyManager::Orb(std::vector<Bounds>& bounds, std::vector<Bounds>& other_bo
     DebugOutput("LEAVING ORB FUNCTION", rank);
 }
 
+void BodyManager::GenerateBodies(int n, std::array<double, 3> min, std::array<double, 3> max, int rank)
+{
+    srand(100 * rank);
 
-void BodyManager::ReadBodies(const char* filename, MPI_Comm comm)
+    for (int i = 0; i < n; i++) {
+        // pre-unrolled
+        double newPos[4];
+        newPos[0] = f_rand(min[0], max[0]);
+        newPos[1] = f_rand(min[1], max[1]);
+        newPos[2] = f_rand(min[2], max[2]);
+        newPos[3] = 0.0;
+
+        double newVel[4];
+        newVel[0] = 0.0;
+        newVel[1] = 0.0;
+        newVel[2] = 0.0;
+        newVel[3] = 0.0;
+        for (int j = 0; j < 4; j++)
+        {
+            localBodies.position.push_back(newPos[j]);
+            localBodies.velocity.push_back(newVel[j]);
+        }
+        localBodies.mass.push_back(f_rand(0.5, 1));
+        localBodies.work.push_back(1.0);
+        localBodies.nextIndex++;
+    }
+}
+
+int BodyManager::ReadBodies(const char* filename, MPI_Comm comm)
 {
     int rank, size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
@@ -534,6 +533,8 @@ void BodyManager::ReadBodies(const char* filename, MPI_Comm comm)
         int x = 1;
         MPI_Send(&x, 1, MPI_INT, rank + 1, 0, MPI_COMM_WORLD);
     }
+
+    return i;
 }
 
 void BodyManager::WriteBodies(const char* filename, MPI_Comm comm, bool overwrite)

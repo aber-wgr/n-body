@@ -75,10 +75,10 @@ int main(int argc, char * argv[]){
 
     if(ip.read_bodies()){
         /* Read bodies from file */
-        bodyManager->ReadBodies(ip.in_file().c_str(), MPI_COMM_WORLD);
+        N = bodyManager->ReadBodies(ip.in_file().c_str(), MPI_COMM_WORLD);
         //auto p = read_bodies(ip.in_file().c_str(), MPI_COMM_WORLD);
         // bodies = p.first;
-        N = bodyManager->localBodies.mass.size();
+        nbodies = bodyManager->localBodies.mass.size();
     }
     else{
         N = ip.n_bodies();
