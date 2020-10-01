@@ -448,10 +448,9 @@ void BodyManager::Orb(std::vector<Bounds>& bounds, std::vector<Bounds>& other_bo
         
     	free(mem_send);
         //delete(mem_send);
-        /*
+        
         // Update bodies
         localBodies = this_side;
-        */
     }
 
     DebugOutput("LEAVING ORB FUNCTION", rank);
