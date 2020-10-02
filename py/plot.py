@@ -17,7 +17,7 @@ def draw_cuboid(x, y, z, ax, c='b'):
 def draw_cuboids(cuboids, ax):
     plots = []
     for i, c in enumerate(cuboids):
-        plots += draw_cuboid(*c, ax)
+        plots += draw_cuboid(c[0],c[1],c[2], ax)
     return plots
 
 file_object = open(sys.argv[1],"r")
@@ -62,7 +62,7 @@ if len(sys.argv) > 2:
 fig = plt.figure()
 ax = fig.gca(projection='3d')
 
-for i in range(0, len(complete_positions)):
+for i in range(0, len(complete_positions)-1):
     ax.set_xlim(min_pos,max_pos)
     ax.set_ylim(min_pos,max_pos)
     ax.set_zlim(min_pos,max_pos)

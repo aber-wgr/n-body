@@ -78,7 +78,7 @@ int main(int argc, char * argv[]){
         N = bodyManager->ReadBodies(ip.in_file().c_str(), MPI_COMM_WORLD);
         //auto p = read_bodies(ip.in_file().c_str(), MPI_COMM_WORLD);
         // bodies = p.first;
-        nbodies = bodyManager->localBodies.mass.size();
+        nbodies = bodyManager->localBodies->mass.size();
     }
     else{
         N = ip.n_bodies();
@@ -120,40 +120,33 @@ int main(int argc, char * argv[]){
         
         /* Domain composition and transfer of bodies */
         bodyManager->GetGlobalMinMax(min, max);
-        //global_minmax(bodies, min, max);
-        DebugOutput("BEFORE ORB", rank);
         bodyManager->Orb(bounds, other_bounds, partners, min, max, rank, size);
-    	//orb(bodies, bounds, other_bounds, partners, min, max, rank, size);
-        DebugOutput("AFTER ORB", rank);
         
         /* Build the local tree */
         Tree tree(bodyManager, min, max, ip.bh_approx_constant());
-        //DebugOutput("TREE CONSTRUCTED,BUILDING", rank);
+
         build_tree(bodyManager, bounds, other_bounds, partners, tree, rank);
-        //DebugOutput("TREE BUILT", rank);
+
         /* Compute forces */
         std::vector<array<double, 3> > forces;
-    	for(int b=0;b<bodyManager->localBodies.mass.size();b++)
+    	for(int b=0;b<bodyManager->localBodies->mass.size();b++)
     	{
             /* time the computation */
             double compute_time = MPI_Wtime();
             array<double, 3> f = tree.compute_force(b);
             /* update the workload for the body */
-            bodyManager->localBodies.work[b] = MPI_Wtime() - compute_time;
+            bodyManager->localBodies->work[b] = MPI_Wtime() - compute_time;
             forces.push_back(f);
     	}
         
-        
         /* Update positions */
-        for (int i = 0; i < bodyManager->localBodies.mass.size(); i++) 
+        for (int i = 0; i < bodyManager->localBodies->mass.size(); i++)
         {
-            // Body & b = bodies[i];
-        	
             for(int c = 0; c < 3; c++)
             {
-                bodyManager->localBodies.velocity[i * 4 + c] = bodyManager->localBodies.velocity[i * 4 + c] + forces[i][c] * dt / bodyManager->localBodies.mass[i];
+                bodyManager->localBodies->velocity[i * 4 + c] = bodyManager->localBodies->velocity[i * 4 + c] + forces[i][c] * dt / bodyManager->localBodies->mass[i];
             	// b.vel[c] = b.vel[c] + forces[i][c] * dt / b.m;
-                bodyManager->localBodies.position[i * 4 + c] = bodyManager->localBodies.position[i * 4 + c] + bodyManager->localBodies.velocity[i * 4 + c] * dt;
+                bodyManager->localBodies->position[i * 4 + c] = bodyManager->localBodies->position[i * 4 + c] + bodyManager->localBodies->velocity[i * 4 + c] * dt;
             	//b.pos[c] = b.pos[c] + b.vel[c] * dt;
             }
         }

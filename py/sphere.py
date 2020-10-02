@@ -21,8 +21,8 @@ for i in range(N):
         v = r * omega
         vx = -y * v
         vy = v * x
-        vz = 0
-        m = 1
+        vz = z * v
+        m = 1.0 + random.uniform(-0.2, 0.2)
         bodies.append((x,y,z, vx, vy, vz, m))
  
 

@@ -54,9 +54,9 @@ void Tree::insert_body(Cell* cell, int bodyIndex)
     /* if cell does not contain a body and is a leaf */
     if (cell->body == -1 and cell->subcells[0] == nullptr) 
     {
-        cell->m = bodies.mass[bodyIndex];
+        cell->m = bodies->mass[bodyIndex];
     	
-        copy(bodies.position.begin() + bodyIndex * 4, bodies.position.begin() + bodyIndex * 4 + 3, cell->rm);
+        copy(bodies->position.begin() + bodyIndex * 4, bodies->position.begin() + bodyIndex * 4 + 3, cell->rm);
         cell->body = bodyIndex;
     }
     else 
@@ -93,7 +93,7 @@ void Tree::insert_body(Cell* cell, int bodyIndex)
         /* insert new body into subcell */
         for (int i = 0; i < 8; i++) 
         {
-            if (cell->subcells[i] != nullptr and coord_in_cell(cell->subcells[i], bodies.position.data() + bodyIndex * 4)) 
+            if (cell->subcells[i] != nullptr and coord_in_cell(cell->subcells[i], bodies->position.data() + bodyIndex * 4))
             {
                 insert_body(cell->subcells[i], bodyIndex);
                 break;
@@ -103,9 +103,9 @@ void Tree::insert_body(Cell* cell, int bodyIndex)
         /* update mass and center of mass for cell */
         for (int c = 0; c < 3; c++) 
         {
-            cell->rm[c] = (cell->m * cell->rm[c] + bodies.mass[bodyIndex] * bodies.position[bodyIndex * 4 + c]) / (cell->m + bodies.mass[bodyIndex]);
+            cell->rm[c] = (cell->m * cell->rm[c] + bodies->mass[bodyIndex] * bodies->position[bodyIndex * 4 + c]) / (cell->m + bodies->mass[bodyIndex]);
         }
-        cell->m += bodies.mass[bodyIndex];
+        cell->m += bodies->mass[bodyIndex];
     }
 }
     
@@ -366,11 +366,11 @@ array<double, 3> Tree::compute_force(const Cell* cell, int bodyIndex) {
 
     /* if cell is non empty and we dont want to open it or it is leaf cell */
     //auto bodies = bodyManager->localBodies;
-    auto pos = bodyManager->localBodies.position.data() + bodyIndex * 4;
+    auto pos = bodyManager->localBodies->position.data() + bodyIndex * 4;
     if (cell->m != 0 and (!opening_criterion(cell, pos, pos) or cell->subcells[0] == nullptr)) {
         if (cell->body != bodyIndex) {
             /* evaluate force */
-            return eval_force(cell->rm, cell->m, pos, bodyManager->localBodies.mass[bodyIndex]);
+            return eval_force(cell->rm, cell->m, pos, bodyManager->localBodies->mass[bodyIndex]);
         }
         /* is this really needed? */
         else {

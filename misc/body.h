@@ -41,7 +41,7 @@ class BodyManager
 {
 	
 public:
-	BodySet localBodies; // essentially this is where we keep the transform results each time
+	BodySet* localBodies = nullptr; // essentially this is where we keep the transform results each time
 	
     int AddBody(double pos[3], double vel[3], double m, double work);   // returns index
 

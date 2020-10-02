@@ -8,3 +8,7 @@
 
 # Vim
 *.swp
+/.vs
+/CMakeFiles
+/misc/.vs
+/out/build/x64-Debug (default)

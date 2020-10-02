@@ -19,20 +19,20 @@
 
 int BodyManager::AddBody(double pos[3], double vel[3], double m, double w)
 {
-    int n = localBodies.nextIndex++;
+    int n = localBodies->nextIndex++;
 	
     for(int i=0;i<3;i++)
     {
-        localBodies.position.push_back(pos[i]);
-        localBodies.velocity.push_back(vel[i]);
+        localBodies->position.push_back(pos[i]);
+        localBodies->velocity.push_back(vel[i]);
     }
 
-    localBodies.position.push_back(0.0);
-    localBodies.velocity.push_back(0.0);
+    localBodies->position.push_back(0.0);
+    localBodies->velocity.push_back(0.0);
 	
 	
-	localBodies.mass.push_back(m);
-	localBodies.work.push_back(w);
+	localBodies->mass.push_back(m);
+	localBodies->work.push_back(w);
 
 	return n;
 }
@@ -45,35 +45,35 @@ void BodyManager::RemoveBodies(std::vector<size_t> indicesToDelete)
     if (indicesToDelete.empty())
         return;
 
-	BodySet out;
+	BodySet* out = new BodySet();
 
-    size_t s = localBodies.position.size() - indicesToDelete.size();
-    out.position.reserve(s*4);
-    out.velocity.reserve(s*4);
-    out.mass.reserve(s);
-    out.work.reserve(s);
+    size_t s = localBodies->position.size() - indicesToDelete.size();
+    out->position.reserve(s*4);
+    out->velocity.reserve(s*4);
+    out->mass.reserve(s);
+    out->work.reserve(s);
 	
 	std::sort(indicesToDelete.begin(), indicesToDelete.end());
 
-    // new we can assume there is at least 1 element to delete. copy blocks at a time.
-    std::vector<double>::iterator itPosBlockBegin = localBodies.position.begin();
-    std::vector<double>::iterator itVelBlockBegin = localBodies.velocity.begin();
-    std::vector<double>::iterator itMassBlockBegin = localBodies.mass.begin();
-	std::vector<double>::iterator itWorkBlockBegin = localBodies.work.begin();
+    // now we can assume there is at least 1 element to delete. copy blocks at a time.
+    std::vector<double>::iterator itPosBlockBegin = localBodies->position.begin();
+    std::vector<double>::iterator itVelBlockBegin = localBodies->velocity.begin();
+    std::vector<double>::iterator itMassBlockBegin = localBodies->mass.begin();
+	std::vector<double>::iterator itWorkBlockBegin = localBodies->work.begin();
 	
     for (std::vector<size_t>::const_iterator it = indicesToDelete.begin(); it != indicesToDelete.end(); ++it)
     {
-        std::vector<double>::iterator itPosBlockEnd = localBodies.position.begin() + (*it * 4);
-        std::vector<double>::iterator itVelBlockEnd = localBodies.velocity.begin() + (*it * 4);
-        std::vector<double>::iterator itMassBlockEnd = localBodies.mass.begin() + *it;
-        std::vector<double>::iterator itWorkBlockEnd = localBodies.work.begin() + *it;
+        std::vector<double>::iterator itPosBlockEnd = localBodies->position.begin() + (*it * 4);
+        std::vector<double>::iterator itVelBlockEnd = localBodies->velocity.begin() + (*it * 4);
+        std::vector<double>::iterator itMassBlockEnd = localBodies->mass.begin() + *it;
+        std::vector<double>::iterator itWorkBlockEnd = localBodies->work.begin() + *it;
     	
         if (itPosBlockBegin != itPosBlockEnd)
         {
-            std::copy(itPosBlockBegin, itPosBlockEnd, std::back_inserter(out.position));
-            std::copy(itVelBlockBegin, itVelBlockEnd, std::back_inserter(out.velocity));
-            std::copy(itMassBlockBegin, itMassBlockEnd, std::back_inserter(out.mass));
-            std::copy(itWorkBlockBegin, itWorkBlockEnd, std::back_inserter(out.work));
+            std::copy(itPosBlockBegin, itPosBlockEnd, std::back_inserter(out->position));
+            std::copy(itVelBlockBegin, itVelBlockEnd, std::back_inserter(out->velocity));
+            std::copy(itMassBlockBegin, itMassBlockEnd, std::back_inserter(out->mass));
+            std::copy(itWorkBlockBegin, itWorkBlockEnd, std::back_inserter(out->work));
         }
         itPosBlockBegin = itPosBlockEnd + 1;
         itVelBlockBegin = itVelBlockEnd + 1;
@@ -82,23 +82,24 @@ void BodyManager::RemoveBodies(std::vector<size_t> indicesToDelete)
     }
 
     // copy last block.
-    if (itPosBlockBegin != localBodies.position.end())
+    if (itPosBlockBegin != localBodies->position.end())
     {
-        std::copy(itPosBlockBegin, localBodies.position.end(), std::back_inserter(out.position));
-        std::copy(itVelBlockBegin, localBodies.velocity.end(), std::back_inserter(out.velocity));
-        std::copy(itMassBlockBegin, localBodies.mass.end(), std::back_inserter(out.mass));
-        std::copy(itWorkBlockBegin, localBodies.work.end(), std::back_inserter(out.work));
+        std::copy(itPosBlockBegin, localBodies->position.end(), std::back_inserter(out->position));
+        std::copy(itVelBlockBegin, localBodies->velocity.end(), std::back_inserter(out->velocity));
+        std::copy(itMassBlockBegin, localBodies->mass.end(), std::back_inserter(out->mass));
+        std::copy(itWorkBlockBegin, localBodies->work.end(), std::back_inserter(out->work));
     }
 
+    delete localBodies;
     localBodies = out;
 }
 
 void BodyManager::AddBodies(std::vector<double> positions, std::vector<double> velocities, std::vector<double> masses, std::vector<double> works)
 {
-    localBodies.position.insert(localBodies.position.end(), positions.begin(), positions.end());
-    localBodies.velocity.insert(localBodies.velocity.end(), velocities.begin(), velocities.end());
-    localBodies.mass.insert(localBodies.mass.end(), masses.begin(), masses.end());
-	localBodies.work.insert(localBodies.work.end(), works.begin(), works.end());
+    localBodies->position.insert(localBodies->position.end(), positions.begin(), positions.end());
+    localBodies->velocity.insert(localBodies->velocity.end(), velocities.begin(), velocities.end());
+    localBodies->mass.insert(localBodies->mass.end(), masses.begin(), masses.end());
+	localBodies->work.insert(localBodies->work.end(), works.begin(), works.end());
 }
 
 double f_rand(double f_min, double f_max)
@@ -117,7 +118,7 @@ void BodyManager::GetLocalMinMax(double* min, double* max)
     max[0] = max[1] = max[2] = -std::numeric_limits<double>::infinity();
 	
     // Find local min and max bounds
-    for (auto it = localBodies.position.begin(); it != localBodies.position.end(); it +=4)
+    for (auto it = localBodies->position.begin(); it != localBodies->position.end(); it +=4)
     {
         auto b = &it[0];
         if (b[0] < min[0]) min[0] = b[0];
@@ -154,15 +155,15 @@ double BodyManager::WeightFrac(double split, int coord, const MPI_Comm& comm) {
 	
     work_above = work_below = 0;
 	
-    for (i = 0; i < localBodies.work.size(); i++) 
+    for (i = 0; i < localBodies->work.size(); i++)
     {
-        if (localBodies.position.at((i*4)+coord) > split) 
+        if (localBodies->position.at((i*4)+coord) > split)
         {
-            work_above += localBodies.work[i];
+            work_above += localBodies->work[i];
         }
         else 
         {
-            work_below += localBodies.work[i];
+            work_below += localBodies->work[i];
         }
     }
     
@@ -213,7 +214,8 @@ void BodyManager::Orb(std::vector<Bounds>& bounds, std::vector<Bounds>& other_bo
     int n_splits, n_proc_left;
     bool above;
     double split;
-    BodySet other_side, this_side;
+    BodySet* other_side = new BodySet();
+    BodySet* this_side = new BodySet();
     std::function<double(double)> f;
     MPI_Status status;
     
@@ -310,78 +312,68 @@ void BodyManager::Orb(std::vector<Bounds>& bounds, std::vector<Bounds>& other_bo
         other_bounds.push_back(there);
 
         // Partition bodies between split
-        other_side.position.clear();
-        other_side.velocity.clear();
-        other_side.mass.clear();
-        other_side.work.clear();
+        other_side->position.clear();
+        other_side->velocity.clear();
+        other_side->mass.clear();
+        other_side->work.clear();
 
-        this_side.position.clear();
-        this_side.velocity.clear();
-        this_side.mass.clear();
-        this_side.work.clear();
+        this_side->position.clear();
+        this_side->velocity.clear();
+        this_side->mass.clear();
+        this_side->work.clear();
 
-        for (int i = 0; i < localBodies.mass.size(); i++)
+        for (int i = 0; i < localBodies->mass.size(); i++)
         {
-            std::string ppp = "(" + std::to_string(localBodies.position[i*4+0]) + "," + std::to_string(localBodies.position[i * 4 + 1]) + "," + std::to_string(localBodies.position[i * 4 + 2]) + "," + std::to_string(localBodies.position[i * 4 + 3]) + ")";
-            DebugOutput("Locating Body #" + std::to_string(i) + " position " + ppp, rank);
-            if ((localBodies.position[i*4+coord] - split > 0) == above)
+            //std::string ppp = "(" + std::to_string(localBodies->position[i*4+0]) + "," + std::to_string(localBodies->position[i * 4 + 1]) + "," + std::to_string(localBodies->position[i * 4 + 2]) + "," + std::to_string(localBodies->position[i * 4 + 3]) + ")";
+            //DebugOutput("Locating Body #" + std::to_string(i) + " position " + ppp, rank);
+            if ((localBodies->position[i*4+coord] - split > 0) == above)
             {
                 DebugOutput("is this side",rank);
                 for (int j = 0; j < 4; j++)
                 {
-                    this_side.position.push_back(localBodies.position[i * 4 + j]);
-                    this_side.velocity.push_back(localBodies.velocity[i * 4 + j]);
+                    this_side->position.push_back(localBodies->position[i * 4 + j]);
+                    this_side->velocity.push_back(localBodies->velocity[i * 4 + j]);
                 }
-                this_side.mass.push_back(localBodies.mass.at(i));
-                this_side.work.push_back(localBodies.work.at(i));
+                this_side->mass.push_back(localBodies->mass.at(i));
+                this_side->work.push_back(localBodies->work.at(i));
             }
             else
             {
                 DebugOutput("is other side", rank);
                 for (int j = 0; j < 4; j++)
                 {
-                    other_side.position.push_back(localBodies.position[i * 4 + j]);
-                    other_side.velocity.push_back(localBodies.velocity[i * 4 + j]);
+                    other_side->position.push_back(localBodies->position[i * 4 + j]);
+                    other_side->velocity.push_back(localBodies->velocity[i * 4 + j]);
                 }
-                other_side.mass.push_back(localBodies.mass.at(i));
-                other_side.work.push_back(localBodies.work.at(i));
+                other_side->mass.push_back(localBodies->mass.at(i));
+                other_side->work.push_back(localBodies->work.at(i));
             }
         }
 
-        this_side_size = this_side.mass.size();
+        this_side_size = this_side->mass.size();
 
         DebugOutput("This side size:" + std::to_string(this_side_size), rank);
-        DebugOutput("Other side size:" + std::to_string(other_side.mass.size()), rank);
+        DebugOutput("Other side size:" + std::to_string(other_side->mass.size()), rank);
     	
         // Exchange bodies with other side
         // get communication partner
         partner = GetPartner(rank, n_proc_left);
         partners.push_back(std::make_pair(partner, above));
 
-        // pack the sending array
-        //size_t send_size = other_side.position.size() + other_side.velocity.size() + other_side.mass.size() + other_side.work.size();
-        //std::vector<double> send = other_side.position;
-        //send.resize(send_size);
-        //send.insert(send.end(), other_side.velocity.begin(), other_side.velocity.end());
-        //send.insert(send.end(), other_side.mass.begin(), other_side.mass.end());
-        //send.insert(send.end(), other_side.work.begin(), other_side.work.end());
-
-        // DebugOutput("just before send array build", rank);
-
-        size_t pos_size = other_side.position.size();
-    	size_t vel_size = other_side.velocity.size();
-        size_t mass_size = other_side.mass.size();
-        size_t work_size = other_side.work.size();
+        size_t pos_size = other_side->position.size();
+    	size_t vel_size = other_side->velocity.size();
+        size_t mass_size = other_side->mass.size();
+        size_t work_size = other_side->work.size();
 
         size_t send_size = pos_size + vel_size + mass_size + work_size;
 
         double* mem_send = (double*)malloc(send_size * sizeof(double));
         std::fill(mem_send, mem_send+(send_size), 1.0);
         
-        std::copy(other_side.position.begin(), other_side.position.end(), mem_send);
-        std::copy(other_side.velocity.begin(), other_side.velocity.end(), mem_send + pos_size);
-        std::copy(other_side.mass.begin(), other_side.mass.end(), mem_send + pos_size + vel_size);
-        std::copy(other_side.work.begin(), other_side.work.end(), mem_send + pos_size + vel_size + mass_size);
+        std::copy(other_side->position.begin(), other_side->position.end(), mem_send);
+        std::copy(other_side->velocity.begin(), other_side->velocity.end(), mem_send + pos_size);
+        std::copy(other_side->mass.begin(), other_side->mass.end(), mem_send + pos_size + vel_size);
+        std::copy(other_side->work.begin(), other_side->work.end(), mem_send + pos_size + vel_size + mass_size);
     	
         DebugOutput("send array built", rank);
     	
@@ -406,10 +398,10 @@ void BodyManager::Orb(std::vector<Bounds>& bounds, std::vector<Bounds>& other_bo
             auto velEnd = recv.begin() + n_actual_bodies * 8;
             auto massEnd = recv.begin() + n_actual_bodies * 9;
         	
-            this_side.position.insert(this_side.position.end(), recv.begin(), posEnd);
-            this_side.velocity.insert(this_side.velocity.end(), posEnd, velEnd);
-            this_side.mass.insert(this_side.mass.end(), velEnd, massEnd);
-            this_side.work.insert(this_side.work.end(), massEnd, recv.end());  
+            this_side->position.insert(this_side->position.end(), recv.begin(), posEnd);
+            this_side->velocity.insert(this_side->velocity.end(), posEnd, velEnd);
+            this_side->mass.insert(this_side->mass.end(), velEnd, massEnd);
+            this_side->work.insert(this_side->work.end(), massEnd, recv.end());
         }
         else 
         {
@@ -431,11 +423,12 @@ void BodyManager::Orb(std::vector<Bounds>& bounds, std::vector<Bounds>& other_bo
             auto velEnd = recv.begin() + n_actual_bodies * 8;
             auto massEnd = recv.begin() + n_actual_bodies * 9;
 
-            this_side.position.insert(this_side.position.end(), recv.begin(), posEnd);
-            this_side.velocity.insert(this_side.velocity.end(), posEnd, velEnd);
-            this_side.mass.insert(this_side.mass.end(), velEnd, massEnd);
-            this_side.work.insert(this_side.work.end(), massEnd, recv.end());
+            this_side->position.insert(this_side->position.end(), recv.begin(), posEnd);
+            this_side->velocity.insert(this_side->velocity.end(), posEnd, velEnd);
+            this_side->mass.insert(this_side->mass.end(), velEnd, massEnd);
+            this_side->work.insert(this_side->work.end(), massEnd, recv.end());
         }
+    	/**
     	DebugOutput("Data resorted", rank);
         DebugOutput("this side size after appending:" + std::to_string(this_side.mass.size()), rank);
         DebugOutput("this side positions after appending:" + std::to_string(this_side.position.size()), rank);
@@ -445,11 +438,12 @@ void BodyManager::Orb(std::vector<Bounds>& bounds, std::vector<Bounds>& other_bo
             DebugOutput(ppos, rank);
     	}
         DebugOutput("Body sending done", rank);
-        
+        */
     	free(mem_send);
         //delete(mem_send);
         
-        // Update bodies
+        // Replace bodies
+        delete localBodies;
         localBodies = this_side;
     }
 
@@ -459,6 +453,9 @@ void BodyManager::Orb(std::vector<Bounds>& bounds, std::vector<Bounds>& other_bo
 void BodyManager::GenerateBodies(int n, std::array<double, 3> min, std::array<double, 3> max, int rank)
 {
     srand(100 * rank);
+
+    if (localBodies != nullptr) delete localBodies;
+    localBodies = new BodySet();
 
     for (int i = 0; i < n; i++) {
         // pre-unrolled
@@ -475,17 +472,20 @@ void BodyManager::GenerateBodies(int n, std::array<double, 3> min, std::array<do
         newVel[3] = 0.0;
         for (int j = 0; j < 4; j++)
         {
-            localBodies.position.push_back(newPos[j]);
-            localBodies.velocity.push_back(newVel[j]);
+            localBodies->position.push_back(newPos[j]);
+            localBodies->velocity.push_back(newVel[j]);
         }
-        localBodies.mass.push_back(f_rand(0.5, 1));
-        localBodies.work.push_back(1.0);
-        localBodies.nextIndex++;
+        localBodies->mass.push_back(f_rand(0.5, 1));
+        localBodies->work.push_back(1.0);
+        localBodies->nextIndex++;
     }
 }
 
 int BodyManager::ReadBodies(const char* filename, MPI_Comm comm)
 {
+    if (localBodies != nullptr) delete localBodies;
+    localBodies = new BodySet();
+	
     int rank, size;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -508,21 +508,21 @@ int BodyManager::ReadBodies(const char* filename, MPI_Comm comm)
         double x, y, z, vx, vy, vz, m;
         if (!(iss >> x >> y >> z >> vx >> vy >> vz >> m)) { break; } // error
         if ((i % size) == rank) {
-            localBodies.position.push_back(x);
-            localBodies.position.push_back(y);
-            localBodies.position.push_back(z);
-            localBodies.position.push_back(0.0);
+            localBodies->position.push_back(x);
+            localBodies->position.push_back(y);
+            localBodies->position.push_back(z);
+            localBodies->position.push_back(0.0);
 
-            localBodies.velocity.push_back(vx);
-            localBodies.velocity.push_back(vy);
-            localBodies.velocity.push_back(vz);
-            localBodies.velocity.push_back(0.0);
+            localBodies->velocity.push_back(vx);
+            localBodies->velocity.push_back(vy);
+            localBodies->velocity.push_back(vz);
+            localBodies->velocity.push_back(0.0);
 
-            localBodies.mass.push_back(m);
+            localBodies->mass.push_back(m);
 
-            localBodies.work.push_back(1.0);
+            localBodies->work.push_back(1.0);
 
-            localBodies.nextIndex++;
+            localBodies->nextIndex++;
         }
         i++;
     }
@@ -561,11 +561,11 @@ void BodyManager::WriteBodies(const char* filename, MPI_Comm comm, bool overwrit
 
     int index;
 
-    for (int i = 0; i < localBodies.mass.size(); i++)
+    for (int i = 0; i < localBodies->mass.size(); i++)
     {
         for (int j = 0; j < 4; j++)
         {
-            myfile << localBodies.position[i * 4 + j] << " ";
+            myfile << localBodies->position[i * 4 + j] << " ";
         }
         myfile << std::endl;
     }

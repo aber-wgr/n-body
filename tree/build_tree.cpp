@@ -33,7 +33,7 @@ void build_tree(BodyManager* bm, const bound_vec & bounds, const bound_vec & oth
     // DebugOutput("Cells inserted", rank);
     /* insert bodies residing on this process */
     // DebugOutput("Inserting " + std::to_string(bm->localBodies.mass.size()) + " bodies", rank);
-    for(int b = 0;b<bm->localBodies.mass.size();b++)
+    for(int b = 0;b<bm->localBodies->mass.size();b++)
     {
         tree.insert_body(b);
     }
