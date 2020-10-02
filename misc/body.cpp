@@ -214,8 +214,8 @@ void BodyManager::Orb(std::vector<Bounds>& bounds, std::vector<Bounds>& other_bo
     int n_splits, n_proc_left;
     bool above;
     double split;
-    BodySet* other_side = new BodySet();
-    BodySet* this_side = new BodySet();
+    BodySet* other_side = nullptr;
+    BodySet* this_side = nullptr;
     std::function<double(double)> f;
     MPI_Status status;
     
@@ -233,6 +233,15 @@ void BodyManager::Orb(std::vector<Bounds>& bounds, std::vector<Bounds>& other_bo
     n_splits = log2(n_processors);
     for (int i = 0; i < n_splits; i++) 
     {
+        if (other_side != nullptr)
+            delete other_side;
+    	
+        if (this_side != nullptr) 
+            delete this_side;
+
+        this_side = new BodySet();
+        other_side = new BodySet();
+    	
         MPI_Comm subset_comm;
         DebugOutput("Running split " + std::to_string(i+1) + "/" + std::to_string(n_splits), rank);
         n_proc_left = n_processors / pow(2, i);
@@ -428,23 +437,16 @@ void BodyManager::Orb(std::vector<Bounds>& bounds, std::vector<Bounds>& other_bo
             this_side->mass.insert(this_side->mass.end(), velEnd, massEnd);
             this_side->work.insert(this_side->work.end(), massEnd, recv.end());
         }
-    	/**
-    	DebugOutput("Data resorted", rank);
-        DebugOutput("this side size after appending:" + std::to_string(this_side.mass.size()), rank);
-        DebugOutput("this side positions after appending:" + std::to_string(this_side.position.size()), rank);
-    	for(int n=0;n<this_side.mass.size();n++)
-    	{
-            std::string ppos = "Position #" + std::to_string(n) + "(" + std::to_string(this_side.position[n * 4 + 0]) + "," + std::to_string(this_side.position[n * 4 + 1]) + "," + std::to_string(this_side.position[n * 4 + 2]) + "," + std::to_string(this_side.position[n * 4 + 3]) + ")";
-            DebugOutput(ppos, rank);
-    	}
-        DebugOutput("Body sending done", rank);
-        */
+
     	free(mem_send);
         //delete(mem_send);
         
         // Replace bodies
         delete localBodies;
+        delete other_side;
         localBodies = this_side;
+        other_side = nullptr;
+        this_side = nullptr;
     }
 
     DebugOutput("LEAVING ORB FUNCTION", rank);

@@ -223,7 +223,7 @@ int main(int argc, char * argv[]){
             write_summary(ip, N, size);
         }
     }
-    
+    delete bodyManager->localBodies;
     delete bodyManager;
 }
 
